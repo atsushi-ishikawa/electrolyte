@@ -1,6 +1,7 @@
 from ase import Atoms
 from ase.calculators.nwchem import NWChem
 from ase.calculators.gaussian import Gaussian
+from tools import delete_num_from_json
 
 from ase.db import connect
 from ase.optimize import BFGS
@@ -14,8 +15,7 @@ num = int(argvs[1])
 calculator = "nwchem"
 calculator = calculator.lower()
 
-orig_jsonfile = "sode_orig.json"
-solv_jsonfile = "tmp.json"
+solv_jsonfile = "electrolye_2017Aug.json"
 
 # ---
 method = "B3LYP"
@@ -24,17 +24,16 @@ fmax   = 0.10
 # ---
 label = "calc" + str(num).zfill(4) + "/low_solv"
 
-db_ori = connect(orig_jsonfile)
-db_sol = connect(solv_jsonfile)
+db_solv = connect(solv_jsonfile)
 
-solv     = db_ori.get_atoms(num=num)
-smiles   = db_ori.get(num=num).smiles
-abb_name = db_ori.get(num=num).abb_name
-wgt      = db_ori.get(num=num).molecular_weight
-dens     = db_ori.get(num=num).density
-bp       = db_ori.get(num=num).boiling_point
-mp       = db_ori.get(num=num).melting_point
-fp       = db_ori.get(num=num).flushing_point
+solv   = db_solv.get_atoms(num=num)
+smiles = db_solv.get(num=num).smiles
+name   = db_solv.get(num=num).name
+wgt    = db_solv.get(num=num).molecular_weight
+dens   = db_solv.get(num=num).density
+bp     = db_solv.get(num=num).boiling_point
+mp     = db_solv.get(num=num).melting_point
+fp     = db_solv.get(num=num).flushing_point
 
 if "nw" in calculator:
 	solv.calc = NWChem(label=label, xc=method, basis=basis, charge=0, mult=1, iterations=200,
@@ -46,9 +45,10 @@ traj = "solv_low_" + str(num).zfill(4) + ".traj"
 BFGS(solv, trajectory=traj).run(fmax=fmax)
 
 ###
-db_sol.write(solv, smiles=smiles, abb_name=abb_name, num=num, 
-		   molecular_weight=wgt, density=dens,
-		   boiling_point=bp, melting_point=mp, flushing_point=fp,
-		   level="low"
+delete_num_from_json(num, solv_jsonfile)
+
+db_solv.write(solv, smiles=smiles, name=name, num=num, 
+		molecular_weight=wgt, density=dens,
+		boiling_point=bp, melting_point=mp, flushing_point=fp
 	    )
 
