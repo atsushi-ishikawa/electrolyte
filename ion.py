@@ -162,19 +162,16 @@ for ion in ions:
 		print "found in database"
 		delete_num_from_json(num, solv_ion_jsonfile)
 
-	view(ion_solv)
-
-
-#	label = "calc" + ion + str(num).zfill(4) + "/nwchem_low"
-#	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
-#						   iterations=200, mulliken=True) # cation
-#                       
-#	traj = ion + "_low_" + str(num).zfill(4) + ".traj"
-#	BFGS(ion_solv, trajectory=traj).run(fmax=fmax)
-#
-#	db_ion.write(ion_solv, smiles=ion_smiles, name=name, num=num, 
-#					molecular_weight=wgt, density=dens,
-#					boiling_point=bp, melting_point=mp, flushing_point=fp,
-#				  	level="low"
-#			)
+ 	label = "calc" + ion + str(num).zfill(4) + "/nwchem_low"
+ 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
+ 						   iterations=200, mulliken=True) # cation
+                        
+ 	traj = ion + "_low_" + str(num).zfill(4) + ".traj"
+ 	BFGS(ion_solv, trajectory=traj).run(fmax=fmax)
+ 
+ 	db_ion.write(ion_solv, smiles=ion_smiles, name=name, num=num, 
+ 					molecular_weight=wgt, density=dens,
+ 					boiling_point=bp, melting_point=mp, flushing_point=fp,
+ 				  	level="low"
+ 			)
 
