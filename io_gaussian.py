@@ -53,9 +53,9 @@ def read_gaussian_out(filename, index=-1, quantity='atoms'):
         formula += chemical_symbols[number]
 
     positions = np.array(data['Positions'])
-    method = data['Method']
+    method  = data['Method']
     version = data['Version']
-    charge = data['Charge']
+    charge  = data['Charge']
     multiplicity = data['Multiplicity']
 
     if method.lower()[1:] in allowed_dft_functionals:
@@ -69,31 +69,74 @@ def read_gaussian_out(filename, index=-1, quantity='atoms'):
 
 # ishi-start
     # read Mulliken population if exists
-#   try:
+    try:
+        if isinstance(filename, basestring):
+            fileobj = open(filename, 'r')
+        else:
+            fileobj = filename
+        # Re-wind the file in case it was previously read.
+        fileobj.seek(0)
+
+        lines = fileobj.readlines()
+#       imul = list()
+        for n, line in enumerate(lines):
+            if ('Mulliken charges:' in line):
+                mul_pop  = list()
+                for j in range(len(atoms)):
+                    mul_pop += [ float(lines[n + j + 2].split()[2]) ]
+#               imul.append(np.array(mul_pop))
+
+#       mul_pop = np.array(imul)
+    except:
+        mul_pop = None
+
+    #
+    # read number of molecualr orbitals
+    #
     if isinstance(filename, basestring):
         fileobj = open(filename, 'r')
     else:
         fileobj = filename
     # Re-wind the file in case it was previously read.
     fileobj.seek(0)
-
     lines = fileobj.readlines()
-#   imul = list()
-    for n, line in enumerate(lines):
-        if ('Mulliken charges:' in line):
-            mul_pop  = list()
-            for j in range(len(atoms)):
-                mul_pop += [ float(lines[n + j + 2].split()[2]) ]
-#           imul.append(np.array(mul_pop))
+    for line in lines:
+        if ('NBsUse' in line):
+            nmo = int(line.split("=")[1].split()[0])
+    #
+    # read orbital energies if exists
+    #
+    try:
+        if isinstance(filename, basestring):
+            fileobj = open(filename, 'r')
+        else:
+            fileobj = filename
+        # Re-wind the file in case it was previously read.
+        fileobj.seek(0)
 
-#   mul_pop = np.array(imul)
+        lines = fileobj.readlines()
 
-#   except:
-#       mul_pop = None
+        for n, line in enumerate(lines):
+            if ('Orbital energies and kinetic energies (alpha):' in line):
+                occ  = list(); vir = list()
+                for j in range(nmo):
+                    occupancy = str(  lines[n + j + 2].split()[1])
+                    ene       = float(lines[n + j + 2].split()[2])
+                    kin       = float(lines[n + j + 2].split()[3])
+                    if occupancy == 'O':
+                        occ += [ene]
+                    elif occupancy == 'V':
+                        vir += [ene]
+
+        MOenergy = [occ, vir]
+    except:
+        MOenergy = None
+#
 # ishi-end
+#
 
     try:
-    # Read foraces if exists
+    # Read forces if exists
         if isinstance(filename, basestring):
             fileobj = open(filename, 'r')
         else:
@@ -128,6 +171,8 @@ def read_gaussian_out(filename, index=-1, quantity='atoms'):
 # ishi-start
     elif (quantity == 'mulliken'):
         return mul_pop
+    elif (quantity == 'MOenergies'):
+        return MOenergy
 # ishi-end
     elif (quantity == 'dipole'):
         return np.array(data['Dipole'])

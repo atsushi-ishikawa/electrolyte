@@ -110,7 +110,7 @@ class Gaussian(FileIOCalculator):
     name = 'Gaussian'
 
 # ishi-start
-    implemented_properties = ['energy', 'forces', 'dipole',  'mulliken']
+    implemented_properties = ['energy', 'forces', 'dipole',  'mulliken', 'MOenergies']
 # ishi-end
     command = 'g16 < PREFIX.com > PREFIX.log'
 
@@ -280,7 +280,7 @@ class Gaussian(FileIOCalculator):
         filename = self.label + '.log'
 
 # ishi-start
-        quantities = ['energy', 'forces', 'dipole',  'mulliken']
+        quantities = ['energy', 'forces', 'dipole',  'mulliken', 'MOenergies']
 # ishi-end
         with open(filename, 'r') as fileobj:
             for quant in quantities:
