@@ -1,5 +1,6 @@
 from ase import Atoms
-from ase.calculators.nwchem import NWChem
+# from ase.calculators.nwchem import NWChem
+from ase.calculators.gaussian import Gaussian
 
 from ase.db import connect
 from ase.optimize import BFGS
@@ -13,6 +14,9 @@ import os, sys
 
 ions = []
 argvs = sys.argv
+
+calculator = "gaussian"
+calculator = calculator.lower()
 
 nions = len(argvs) - 2 # number of ion species
 
@@ -163,8 +167,12 @@ for ion in ions:
 		delete_num_from_json(num, solv_ion_jsonfile)
 
  	label = "calc" + ion + str(num).zfill(4) + "/nwchem_low"
- 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
- 						   iterations=200, mulliken=True) # cation
+	if "nw" in calculator:
+	 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
+ 							iterations=200, mulliken=True) # cation
+	elif "gau" in calculator:
+ 		ion_solv.calc = Gaussian(method=xc, basis=basis, label=label, 
+							charge=ion_charge, mult=1, nprocshared=12)
                         
  	traj = ion + "_low_" + str(num).zfill(4) + ".traj"
  	BFGS(ion_solv, trajectory=traj).run(fmax=fmax)

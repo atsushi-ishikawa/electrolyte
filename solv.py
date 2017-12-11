@@ -12,7 +12,7 @@ import os, sys
 argvs = sys.argv
 num = int(argvs[1])
 
-calculator = "nwchem"
+calculator = "gaussian"
 calculator = calculator.lower()
 
 solv_jsonfile = "electrolye_2017Aug.json"
@@ -39,16 +39,26 @@ if "nw" in calculator:
 	solv.calc = NWChem(label=label, xc=method, basis=basis, charge=0, mult=1, iterations=200,
 			   mulliken=True)
 elif "gau" in calculator:
-	solv.calc = Gaussian(method=method, basis=basis, label=label, nprocshared=12)
+	solv.calc = Gaussian(method=method, basis=basis, label=label, nprocshared=12, population="full")
 
 traj = "solv_low_" + str(num).zfill(4) + ".traj"
 BFGS(solv, trajectory=traj).run(fmax=fmax)
 
+### tmp
+dipole = solv.calc.results['dipole']
+print "dipole", dipole
+mul = solv.calc.results['mulliken']
+print "mul", mul
 ###
+
+'''
+
 delete_num_from_json(num, solv_jsonfile)
 
 db_solv.write(solv, smiles=smiles, name=name, num=num, 
 		molecular_weight=wgt, density=dens,
 		boiling_point=bp, melting_point=mp, flushing_point=fp
 	    )
+
+'''
 
