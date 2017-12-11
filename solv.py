@@ -49,6 +49,10 @@ dipole = solv.calc.results['dipole']
 print "dipole", dipole
 mul = solv.calc.results['mulliken']
 print "mul", mul
+MOenergy = solv.calc.results['MOenergies']
+homo = MOenergy[0][-1]
+lumo = MOenergy[1][0]
+print "homo,lumo",homo,lumo
 ###
 
 '''
