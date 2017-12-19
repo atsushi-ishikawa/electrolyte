@@ -12,14 +12,15 @@ import os, sys
 argvs = sys.argv
 num = int(argvs[1])
 
-calculator = "gaussian"
+calculator = "nwchem"
 calculator = calculator.lower()
 
-solv_jsonfile = "electrolye_2017Aug.json"
+#solv_jsonfile = "electrolye_2017Aug.json"
+solv_jsonfile = "ishi3_new.json"
 
 # ---
 method = "B3LYP"
-basis  = "6-31G"
+basis  = "3-21G"
 fmax   = 0.10
 # ---
 label = "calc" + str(num).zfill(4) + "/low_solv"
@@ -34,9 +35,18 @@ dens   = db_solv.get(num=num).density
 bp     = db_solv.get(num=num).boiling_point
 mp     = db_solv.get(num=num).melting_point
 fp     = db_solv.get(num=num).flushing_point
+try:
+	pubchem = db_read.get(num=num).pubchemCID
+except:
+	pubchem = ""
+
+
+charge = 0
+if num == 106:
+	charge = -1
 
 if "nw" in calculator:
-	solv.calc = NWChem(label=label, xc=method, basis=basis, charge=0, mult=1, iterations=200,
+	solv.calc = NWChem(label=label, xc=method, basis=basis, charge=charge, mult=1, iterations=200,
 			   mulliken=True)
 elif "gau" in calculator:
 	solv.calc = Gaussian(method=method, basis=basis, label=label, nprocshared=12, population="full")
@@ -44,25 +54,10 @@ elif "gau" in calculator:
 traj = "solv_low_" + str(num).zfill(4) + ".traj"
 BFGS(solv, trajectory=traj).run(fmax=fmax)
 
-### tmp
-dipole = solv.calc.results['dipole']
-print "dipole", dipole
-mul = solv.calc.results['mulliken']
-print "mul", mul
-MOenergy = solv.calc.results['MOenergies']
-homo = MOenergy[0][-1]
-lumo = MOenergy[1][0]
-print "homo,lumo",homo,lumo
-###
-
-'''
-
 delete_num_from_json(num, solv_jsonfile)
 
 db_solv.write(solv, smiles=smiles, name=name, num=num, 
 		molecular_weight=wgt, density=dens,
-		boiling_point=bp, melting_point=mp, flushing_point=fp
+		boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem
 	    )
-
-'''
 

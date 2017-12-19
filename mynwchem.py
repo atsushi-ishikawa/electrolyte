@@ -34,6 +34,7 @@ class NWChem(FileIOCalculator):
     default_parameters = dict(
 #ishi-begin
         memory=None,
+        response=None,
 #ishi-end
         xc='LDA',
         smearing=None,
@@ -116,6 +117,7 @@ class NWChem(FileIOCalculator):
             basis += format_basis_set(p.so, 'so')
         f.write(basis)
 
+        # SCF section
         if p.xc == 'RHF':
             task = 'scf'
         elif p.xc == 'MP2':
@@ -164,14 +166,22 @@ class NWChem(FileIOCalculator):
 # ishi-begin
                 if key in ['charge', 'geometry', 'basis', 'basispar', 'ecp',
                            'so', 'xc', 'spinorbit', 'convergence', 'smearing',
-                           'raw', 'mult', 'task', 'odft','memory']:
+                           'raw', 'mult', 'task', 'odft', 'memory', 'response']:
 # ishi-end
                     continue
                 f.write(u"  {0} {1}\n".format(key, p[key]))
             f.write('end\n')
+        # end SCF section
 
         if p.raw:
             f.write(p.raw + '\n')
+
+# ishi-begin
+        if p['response'] is not None:
+            f.write('property \n  response %s\nend\n' % p['response'])
+            p.task = 'property'
+
+# ishi-end
         f.write('\ntask ' + task + ' ' + p.task + '\n')
         f.close()
 
@@ -212,6 +222,7 @@ class NWChem(FileIOCalculator):
 # ishi-begin
         self.results['mul_charge'] = self.read_mulliken_charges()
         self.results['low_charge'] = self.read_lowdin_charges()
+        self.results['polarizability'] = self.read_polarizability()
 # ishi-end
         dipole = self.read_dipole_moment()
         if dipole is not None:
@@ -444,6 +455,7 @@ class NWChem(FileIOCalculator):
         """Is it a spin-polarized calculation?"""
         return len(self.kpts) == 2
 
+# ishi-begin
     def read_mulliken_charges(self):
         """Read mulliken charges from nwchem output file."""
         file = open(self.label + '.out', 'r')
@@ -462,19 +474,36 @@ class NWChem(FileIOCalculator):
         return mul_charges
 
     def read_lowdin_charges(self):
-		"""Read lowdin charges from nwchem output file."""
-		file = open(self.label + '.out', 'r')
-		lines = file.readlines()
-		file.close()
+        """Read lowdin charges from nwchem output file."""
+        file = open(self.label + '.out', 'r')
+        lines = file.readlines()
+        file.close()
 
-		for i, line in enumerate(lines):
- 			if line.find('Lowdin Population Analysis') >= 0:
-				low_charges = []
- 				for j in range(i + 5, i + 5 + len(self.atoms)):
- 					word = lines[j].split()
- 					low_charges.append(float(word[3]))
- 
-		atomnum = self.atoms.get_atomic_numbers()
-		low_charges = atomnum - low_charges
-		return low_charges
+        for i, line in enumerate(lines):
+            if line.find('Lowdin Population Analysis') >= 0:
+                low_charges = []
+                for j in range(i + 5, i + 5 + len(self.atoms)):
+                    word = lines[j].split()
+                    low_charges.append(float(word[3]))
 
+        atomnum = self.atoms.get_atomic_numbers()
+        low_charges = atomnum - low_charges
+        return low_charges
+
+    def read_polarizability(self):
+        """Read polarizability (isotropic and anisotropic) from nwchem output file."""
+        file = open(self.label + '.out', 'r')
+        lines = file.readlines()
+        file.close()
+
+        iso = 0.0; aniso = 0.0
+        for i, line in enumerate(lines):
+            if line.find('DFT Linear Response polarizability') >= 0:
+                polarizability = []
+                iso   = lines[i + 10].split('=')[1].strip()
+                aniso = lines[i + 11].split('=')[1].strip()
+
+        polarizability = [float(iso), float(aniso)]
+        return polarizability
+
+# ishi-end

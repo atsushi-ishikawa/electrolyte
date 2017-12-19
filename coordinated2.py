@@ -11,6 +11,8 @@ from tools import ABcoord
 
 import os
 import sys
+import numpy as np
+from numpy import linalg
 
 ions = []
 argvs = sys.argv
@@ -23,14 +25,17 @@ for i in range(0, nions):
 
 num   = int(argvs[nions + 1])
 
-solv_jsonfile = "electrolye_2017Aug.json"
-out_jsonfile  = "tmpout.json"
+#solv_jsonfile = "electrolye_2017Aug.json"
+#out_jsonfile  = "tmpout.json"
+solv_jsonfile = "ishi3_new.json"
+out_jsonfile  = "ishi3_final.json"
 
 # ---
-xc     = "B3LYP"
-basis  = "cc-pvdz"
-fmax   =  0.05
-memory = "total 8 gb"
+xc       = "B3LYP"
+basis    = "DZP"
+fmax     =  0.05
+memory   = "total 8 gb"
+response = "1 0.0"
 # ---
 
 # - label -
@@ -40,9 +45,10 @@ label_solv = "calc" + str(num).zfill(4) + "/nwchem_solv"
 db_solv = connect(solv_jsonfile)
 db_out  = connect(out_jsonfile)
 
-#
-# solvent
-#
+
+# ---------------------------
+# --------- solvent ---------
+# ---------------------------
 solv   = db_solv.get_atoms(num=num)
 smiles = db_solv.get(num=num).smiles
 name   = db_solv.get(num=num).name
@@ -51,35 +57,53 @@ dens   = db_solv.get(num=num).density
 bp     = db_solv.get(num=num).boiling_point
 mp     = db_solv.get(num=num).melting_point
 fp     = db_solv.get(num=num).flushing_point
+try:
+	pubchem = db_solv.get(num=num).pubchemCID
+except:
+	pubchem = ""
 
 # get charge and multiplicity from old file
 charge = db_solv.get(num=num).calculator_parameters["charge"]
 mult   = db_solv.get(num=num).calculator_parameters["mult"]
 
+print " --- calculating num = ",num, "(", name,")"
+
+#
+# geometry optimization
+#
+print "solvent"
 calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, 
               mult=mult, iterations=200,
               mulliken=True, memory=memory)
 solv.set_calculator(calc)
-
+#
 traj = "solv_" + str(num).zfill(4) + ".traj"
 BFGS(solv, trajectory=traj).run(fmax=fmax)
-
-E_solv = solv.get_potential_energy()
-
 #
-#  mulliken charge 
+# single point calculation for polarizability
 #
+calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, 
+	      mult=mult, iterations=200, 
+	      mulliken=True, memory=memory, response=response)
+solv.set_calculator(calc)
+#
+# --- analyze results ---
+#
+E_solv     = solv.get_potential_energy()
+
 mul_charge = calc.results["mul_charge"] 
 
-## convert mulliken charge to string
-# mul_charge_str = map(str, mul_charge)
-# mul_charge_str = ",".join(mul_charge_str)
+e_homo = calc.get_homo_energy()
+e_lumo = calc.get_lumo_energy()
 
-e_homo  = calc.get_homo_energy()
-e_lumo  = calc.get_lumo_energy()
+polar     = calc.results["polarizability"]
+iso_pol   = polar[0]
+aniso_pol = polar[1]
 
-symbols = solv.get_chemical_symbols()
+dipole       = calc.get_dipole_moment() ; dipole = np.array(dipole)
+total_dipole = linalg.norm(dipole)
 
+#symbols = solv.get_chemical_symbols() # no need?
 #
 # Get mulliken charge of solvent's O atom
 # which is "going to" coordinate to ion.
@@ -94,9 +118,9 @@ O_cent_mo = mo_cent[highest_O_cent_mo]
 
 mul_O_solv = mul_charge[O_cent_mo-1]
 
-#
-# ion coordinated
-#
+# -----------------------------------
+# --------- ion coordinated ---------
+# -----------------------------------
 e_homo_ion  = {} ; e_lumo_ion  = {}
 mul_ion_ion = {} ; mul_O_ion   = {}
 Ecoord  = {}     ; R_ion_O = {}
@@ -111,6 +135,7 @@ for ion in ions:
 	charge   = db_ion.get(num=num).calculator_parameters["charge"]
 	mult     = db_ion.get(num=num).calculator_parameters["mult"]
 
+	print ion, " coordinated"
 	calc = NWChem(label=label_ion, xc=xc, basis=basis, charge=charge, 
                       mult=mult, iterations=200, 
    	              mulliken=True, memory=memory) # cation
@@ -143,34 +168,37 @@ for ion in ions:
 	#
 	# get energy of ion 
 	#
-	if ion == "Li":
-		ion_charge = 1
-	elif ion == "Na":
+	if ion in ["Li", "Na", "K", "Rb", "Cs"]:
 		ion_charge = 1
 	elif ion == "Mg":
 		ion_charge = 2
 	else:
-		print "only Li, Na, Mg is allowed" ; quit()
+		print "only alkaline metal and Mg is allowed" ; quit()
 
-	label_atom = "calc_" + ion + "/nwchem"
+	label_atom = "calc" + ion + "/nwchem"
 	ion_atom = Atoms(ion, positions=[(0,0,0)])
 	ion_atom.calc = NWChem(label=label_atom, xc=xc, basis=basis, 
-						   charge=ion_charge, mulliken=True)
+			       charge=ion_charge, mulliken=True)
 
 	E_ion = ion_atom.get_potential_energy()
 
 	Ecoord[ion] = E_ion_solv - ( E_ion + E_solv )
 
+# end ion loop
+
 db_out.write(solv,num=num, smiles=smiles, name=name,
 			  	molecular_weight=wgt, density=dens,
 			  	boiling_point=bp, melting_point=mp, flushing_point=fp,
-				data={	"e_homo"      : e_homo,
-					"e_lumo"      : e_lumo,
-					"e_homo_ion"  : e_homo_ion,
-					"e_lumo_ion"  : e_lumo_ion,
-					"mul_O_solv"  : mul_O_solv,
-					"mul_ion_ion" : mul_ion_ion,
-					"mul_O_ion"   : mul_O_ion,
-					"R_ion_O"     : R_ion_O,
+				data={	"e_homo"       : e_homo,
+					"e_lumo"       : e_lumo,
+					"e_homo_ion"   : e_homo_ion,
+					"e_lumo_ion"   : e_lumo_ion,
+					"mul_O_solv"   : mul_O_solv,
+					"mul_ion_ion"  : mul_ion_ion,
+					"mul_O_ion"    : mul_O_ion,
+					"R_ion_O"      : R_ion_O,
+					"total_dipole" : total_dipole,
+					"iso_polarizability"   : iso_pol,
+					"aniso_polarizability" : aniso_pol,
 					"Ecoord"      : Ecoord		}
 			)

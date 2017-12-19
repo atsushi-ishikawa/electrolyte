@@ -1,6 +1,8 @@
 from ase import Atoms
 # from ase.calculators.nwchem import NWChem
-from ase.calculators.gaussian import Gaussian
+import mynwchem
+from mynwchem import NWChem
+# from ase.calculators.gaussian import Gaussian
 
 from ase.db import connect
 from ase.optimize import BFGS
@@ -15,7 +17,7 @@ import os, sys
 ions = []
 argvs = sys.argv
 
-calculator = "gaussian"
+calculator = "nwchem"
 calculator = calculator.lower()
 
 nions = len(argvs) - 2 # number of ion species
@@ -28,12 +30,15 @@ print "ions", ions
 
 num = int(argvs[nions + 1])
 
-solv_jsonfile = "electrolye_2017Aug.json"
+# solv_jsonfile = "electrolye_2017Aug.json"
+solv_jsonfile = "ishi3_new.json"
 
 # ---
 xc    = "B3LYP"
-basis = "6-31G*"
+#basis = "6-31G*"
+basis = "DZP"
 fmax  =  0.10
+memory = "total 8 gb"
 # ---
 
 db_solv = connect(solv_jsonfile)
@@ -46,6 +51,10 @@ dens   = db_solv.get(num=num).density
 bp     = db_solv.get(num=num).boiling_point
 mp     = db_solv.get(num=num).melting_point
 fp     = db_solv.get(num=num).flushing_point
+try:
+	pubchem = db_solv.get(num=num).pubchemCID
+except:
+	pubchem = ""
 
 #
 # now loop over ions
@@ -61,14 +70,12 @@ for ion in ions:
 		print "newly formed here"
 		# determine charge
 
-		if ion == "Li":
-			ion_charge = 1
-		elif ion == "Na":
+		if ion in ["Li", "Na", "K", "Rb", "Cs"]:
 			ion_charge = 1
 		elif ion == "Mg":
 			ion_charge = 2
 		else:
-			print "only Li, Na, Mg is allowed" ; quit()
+			print "only AlcaliMetal and Mg is allowed" ; quit()
 
 		print "smiles", smiles
 		if "(O=" in smiles or "=O)" in smiles:
@@ -167,19 +174,20 @@ for ion in ions:
 		delete_num_from_json(num, solv_ion_jsonfile)
 
  	label = "calc" + ion + str(num).zfill(4) + "/nwchem_low"
+
 	if "nw" in calculator:
 	 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
- 							iterations=200, mulliken=True) # cation
+ 				       iterations=200, mulliken=True, memory=memory) # cation
 	elif "gau" in calculator:
  		ion_solv.calc = Gaussian(method=xc, basis=basis, label=label, 
-							charge=ion_charge, mult=1, nprocshared=12)
+					 charge=ion_charge, mult=1, nprocshared=12)
                         
  	traj = ion + "_low_" + str(num).zfill(4) + ".traj"
  	BFGS(ion_solv, trajectory=traj).run(fmax=fmax)
  
  	db_ion.write(ion_solv, smiles=ion_smiles, name=name, num=num, 
- 					molecular_weight=wgt, density=dens,
- 					boiling_point=bp, melting_point=mp, flushing_point=fp,
- 				  	level="low"
+				molecular_weight=wgt, density=dens,
+ 				boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem,
+ 			  	level="low"
  			)
 
