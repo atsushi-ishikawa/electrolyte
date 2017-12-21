@@ -507,3 +507,4 @@ class NWChem(FileIOCalculator):
         return polarizability
 
 # ishi-end
+

@@ -32,7 +32,7 @@ out_jsonfile  = "ishi3_final.json"
 
 # ---
 xc       = "B3LYP"
-basis    = "DZP"
+basis    = "ADZP"
 fmax     =  0.05
 memory   = "total 8 gb"
 response = "1 0.0"
@@ -92,6 +92,7 @@ solv.set_calculator(calc)
 E_solv     = solv.get_potential_energy()
 
 mul_charge = calc.results["mul_charge"] 
+low_charge = calc.results["low_charge"] 
 
 e_homo = calc.get_homo_energy()
 e_lumo = calc.get_lumo_energy()
@@ -117,12 +118,14 @@ highest_O_cent_mo = O_cent[-1]
 O_cent_mo = mo_cent[highest_O_cent_mo]
 
 mul_O_solv = mul_charge[O_cent_mo-1]
+low_O_solv = low_charge[O_cent_mo-1]
 
 # -----------------------------------
 # --------- ion coordinated ---------
 # -----------------------------------
 e_homo_ion  = {} ; e_lumo_ion  = {}
 mul_ion_ion = {} ; mul_O_ion   = {}
+low_ion_ion = {} ; low_O_ion   = {}
 Ecoord  = {}     ; R_ion_O = {}
 
 for ion in ions:
@@ -147,12 +150,10 @@ for ion in ions:
 	E_ion_solv = ion_solv.get_potential_energy()
 
 	#
-	# mulliken charge
+	# Mulliken and Lowdin charge
 	#
 	mul_charge_ion = calc.results["mul_charge"]
-	## convert mulliken charge to string
-	# mul_charge_ion_str = map(str, mul_charge_ion)
-	# mul_charge_ion_str = ",".join(mul_charge_ion_str)
+	low_charge_ion = calc.results["low_charge"]
 
 	e_homo_ion[ion] = calc.get_homo_energy()
 	e_lumo_ion[ion] = calc.get_lumo_energy()
@@ -164,6 +165,8 @@ for ion in ions:
 
 	mul_ion_ion[ion] = mul_charge_ion[ion_idx] # ion
 	mul_O_ion[ion]   = mul_charge_ion[O_idx]   # coordinating O of O-Li
+	low_ion_ion[ion] = low_charge_ion[ion_idx] # ion
+	low_O_ion[ion]   = low_charge_ion[O_idx]   # coordinating O of O-Li
 
 	#
 	# get energy of ion 
@@ -196,6 +199,9 @@ db_out.write(solv,num=num, smiles=smiles, name=name,
 					"mul_O_solv"   : mul_O_solv,
 					"mul_ion_ion"  : mul_ion_ion,
 					"mul_O_ion"    : mul_O_ion,
+					"low_O_solv"   : low_O_solv,
+					"low_ion_ion"  : low_ion_ion,
+					"low_O_ion"    : low_O_ion,
 					"R_ion_O"      : R_ion_O,
 					"total_dipole" : total_dipole,
 					"iso_polarizability"   : iso_pol,
