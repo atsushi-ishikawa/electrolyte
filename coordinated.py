@@ -31,7 +31,7 @@ out_jsonfile  = "ishi3_final.json"
 # ---
 xc       = "B3LYP"
 basis    = "3-21G"
-fmax     =  0.05
+fmax     =  0.10
 memory   = "total 8 gb"
 response = "1 0.0"
 # ---
@@ -123,14 +123,16 @@ if IP_and_EA:
 	calc_c = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge+1, 
 			mult=mult+1, iterations=200, mulliken=True, memory=memory)
 	solv.set_calculator(calc_c)
+	traj = "solv_cat" + str(num).zfill(4) + ".traj"
 	BFGS(solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 	E_cat = solv.get_potential_energy()
 	#
 	#  anion
 	#
-	calc_a = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge-1, lshift=2.0,
+	calc_a = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge-1,
 			mult=mult+1, iterations=200, mulliken=True, memory=memory)
 	solv.set_calculator(calc_a)
+	traj = "solv_ani" + str(num).zfill(4) + ".traj"
 	BFGS(solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 	E_ani = solv.get_potential_energy()
 	#
