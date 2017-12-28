@@ -92,14 +92,17 @@ df.to_csv('tmp.csv')
 ```python {cmd=True}
 import pandas
 import matplotlib.pyplot as plt
-import seaborn
+import seaborn as sns
 
 df = pandas.read_csv("tmp.csv")
-# seaborn.jointplot("low_O_solv","Ecoord.Li",data=df)
-seaborn.pairplot(df, vars=[
+# sns.jointplot("low_O_solv","Ecoord.Li",data=df)
+
+sns.set()
+sns.set(font_scale=0.8)
+sns.pairplot(df, vars=[
   'Ecoord.Li','mul_O_solv','low_O_solv','e_homo','e_lumo',
   'iso_polarizability',
   'total_dipole', 'ionization_potential', 'electron_affinity'
-  ])
+  ], plot_kws={"s": 15}, diag_kind="hist", size=1.4)
 plt.show()
 ```
