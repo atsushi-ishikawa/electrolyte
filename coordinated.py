@@ -1,23 +1,21 @@
 from ase import Atoms
-
-import mynwchem
 from mynwchem import NWChem
-
 from ase.db import connect
 from ase.optimize import BFGS
 from ase.io import read, write
-
 from tools import ABcoord
-
 import os
 import sys
 import numpy as np
 from numpy import linalg
+import mynwchem
 
 ions = []
 argvs = sys.argv
 
 nions = len(argvs) - 2 
+
+IP_and_EA = True
 
 # get ion list
 for i in range(0, nions):
@@ -32,7 +30,7 @@ out_jsonfile  = "ishi3_final.json"
 
 # ---
 xc       = "B3LYP"
-basis    = "ADZP"
+basis    = "3-21G"
 fmax     =  0.05
 memory   = "total 8 gb"
 response = "1 0.0"
@@ -44,6 +42,8 @@ label_solv = "calc" + str(num).zfill(4) + "/nwchem_solv"
 
 db_solv = connect(solv_jsonfile)
 db_out  = connect(out_jsonfile)
+
+maxsteps = 200 # maximum number of geometry optimization steps
 
 
 # ---------------------------
@@ -67,30 +67,26 @@ charge = db_solv.get(num=num).calculator_parameters["charge"]
 mult   = db_solv.get(num=num).calculator_parameters["mult"]
 
 print " --- calculating num = ",num, "(", name,")"
-
+print "solvent"
+#  --- neutral ---
 #
 # geometry optimization
 #
-print "solvent"
 calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, 
-              mult=mult, iterations=200,
-              mulliken=True, memory=memory)
+              mult=mult, iterations=200, mulliken=True, memory=memory)
 solv.set_calculator(calc)
-#
 traj = "solv_" + str(num).zfill(4) + ".traj"
-BFGS(solv, trajectory=traj).run(fmax=fmax)
+BFGS(solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 #
 # single point calculation for polarizability
 #
-calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, 
-	      mult=mult, iterations=200, 
-	      mulliken=True, memory=memory, response=response)
+calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, mult=mult,
+	      iterations=200, mulliken=True, memory=memory, response=response)
 solv.set_calculator(calc)
+E_solv = solv.get_potential_energy()
 #
 # --- analyze results ---
 #
-E_solv     = solv.get_potential_energy()
-
 mul_charge = calc.results["mul_charge"] 
 low_charge = calc.results["low_charge"] 
 
@@ -103,8 +99,6 @@ aniso_pol = polar[1]
 
 dipole       = calc.get_dipole_moment() ; dipole = np.array(dipole)
 total_dipole = linalg.norm(dipole)
-
-#symbols = solv.get_chemical_symbols() # no need?
 #
 # Get mulliken charge of solvent's O atom
 # which is "going to" coordinate to ion.
@@ -119,6 +113,31 @@ O_cent_mo = mo_cent[highest_O_cent_mo]
 
 mul_O_solv = mul_charge[O_cent_mo-1]
 low_O_solv = low_charge[O_cent_mo-1]
+#
+#  --- IP and EA calculation ---
+#
+if IP_and_EA:
+	#
+	#  cation
+	#
+	calc_c = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge+1, 
+			mult=mult+1, iterations=200, mulliken=True, memory=memory)
+	solv.set_calculator(calc_c)
+	BFGS(solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
+	E_cat = solv.get_potential_energy()
+	#
+	#  anion
+	#
+	calc_a = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge-1, lshift=2.0,
+			mult=mult+1, iterations=200, mulliken=True, memory=memory)
+	solv.set_calculator(calc_a)
+	BFGS(solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
+	E_ani = solv.get_potential_energy()
+	#
+	IP = E_cat - E_solv
+	EA = E_ani - E_solv
+else:
+	IP = 0.0; EA = 0.0
 
 # -----------------------------------
 # --------- ion coordinated ---------
@@ -145,7 +164,7 @@ for ion in ions:
 	ion_solv.set_calculator(calc)
 
 	traj = ion + str(num).zfill(4) + ".traj"
-	BFGS(ion_solv, trajectory=traj).run(fmax=fmax)
+	BFGS(ion_solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 
 	E_ion_solv = ion_solv.get_potential_energy()
 
@@ -206,5 +225,7 @@ db_out.write(solv,num=num, smiles=smiles, name=name,
 					"total_dipole" : total_dipole,
 					"iso_polarizability"   : iso_pol,
 					"aniso_polarizability" : aniso_pol,
-					"Ecoord"      : Ecoord		}
+					"ionization_potential" : IP,
+					"electron_affinity"    : EA,
+					"Ecoord"      : Ecoord }
 			)
