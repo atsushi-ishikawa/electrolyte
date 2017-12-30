@@ -1,7 +1,7 @@
 from ase import Atoms
 from mynwchem import NWChem
 from ase.db import connect
-from ase.optimize import BFGS
+from ase.optimize import FIRE
 from ase.io import read, write
 from tools import ABcoord
 import os
@@ -76,7 +76,7 @@ calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge,
               mult=mult, iterations=200, mulliken=True, memory=memory)
 solv.set_calculator(calc)
 traj = "solv_" + str(num).zfill(4) + ".traj"
-BFGS(solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
+FIRE(solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 #
 # single point calculation for polarizability
 #
@@ -113,6 +113,7 @@ O_cent_mo = mo_cent[highest_O_cent_mo]
 
 mul_O_solv = mul_charge[O_cent_mo-1]
 low_O_solv = low_charge[O_cent_mo-1]
+
 #
 #  --- IP and EA calculation ---
 #
@@ -120,20 +121,22 @@ if IP_and_EA:
 	#
 	#  cation
 	#
+	solv_c = solv.copy()
 	calc_c = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge+1, 
 			mult=mult+1, iterations=200, mulliken=True, memory=memory)
-	solv.set_calculator(calc_c)
+	solv_c.set_calculator(calc_c)
 	traj = "solv_cat" + str(num).zfill(4) + ".traj"
-	BFGS(solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
+	FIRE(solv_c, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 	E_cat = solv.get_potential_energy()
 	#
 	#  anion
 	#
+	solv_a = solv.copy()
 	calc_a = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge-1,
 			mult=mult+1, iterations=200, mulliken=True, memory=memory)
-	solv.set_calculator(calc_a)
+	solv_a.set_calculator(calc_a)
 	traj = "solv_ani" + str(num).zfill(4) + ".traj"
-	BFGS(solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
+	FIRE(solv_a, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 	E_ani = solv.get_potential_energy()
 	#
 	IP = E_cat - E_solv
@@ -166,7 +169,7 @@ for ion in ions:
 	ion_solv.set_calculator(calc)
 
 	traj = ion + str(num).zfill(4) + ".traj"
-	BFGS(ion_solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
+	FIRE(ion_solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 
 	E_ion_solv = ion_solv.get_potential_energy()
 
