@@ -64,26 +64,34 @@ df = pandas.read_csv('tmp.csv')
 # delete unnecessary keys (to regression)
 drop_col = ['calculator', 'charge', 'iterations', 'memory',
   'mulliken', 'mult', 'xc', 'cell', 'ctime',
-  'R_ion_O.Li', 'R_ion_O.Na', 'R_ion_O.K', 'R_ion_O.Rb','R_ion_O.Cs',
-  'e_homo_ion.Li', 'e_homo_ion.Na',   'e_homo_ion.K',
-  'e_homo_ion.Rb', 'e_homo_ion.Cs',
-  'e_lumo_ion.Li', 'e_lumo_ion.Na',   'e_lumo_ion.K',
-  'e_lumo_ion.Rb', 'e_lumo_ion.Cs',
-  'mul_ion_ion.Li', 'mul_ion_ion.Na', 'mul_ion_ion.K',
-  'mul_ion_ion.Rb', 'mul_ion_ion.Cs',
-  'low_ion_ion.Li', 'low_ion_ion.Na', 'low_ion_ion.K',
-  'low_ion_ion.Rb', 'low_ion_ion.Cs',
-  'mul_O_ion.Li',   'mul_O_ion.Na',   'mul_O_ion.K',
-  'mul_O_ion.Rb',   'mul_O_ion.Cs',
-  'low_O_ion.Li',   'low_O_ion.Na',   'low_O_ion.K',
-  'low_O_ion.Rb',   'low_O_ion.Cs',
+  'R_ion_O.Li',
+  # 'R_ion_O.Na', 'R_ion_O.K', 'R_ion_O.Rb','R_ion_O.Cs',
+  'e_homo_ion.Li',
+  # 'e_homo_ion.Na',   'e_homo_ion.K',
+  # 'e_homo_ion.Rb', 'e_homo_ion.Cs',
+  'e_lumo_ion.Li',
+  # 'e_lumo_ion.Na',   'e_lumo_ion.K',
+  # 'e_lumo_ion.Rb', 'e_lumo_ion.Cs',
+  'mul_ion_ion.Li',
+  # 'mul_ion_ion.Na', 'mul_ion_ion.K',
+  # 'mul_ion_ion.Rb', 'mul_ion_ion.Cs',
+  'low_ion_ion.Li',
+  # 'low_ion_ion.Na', 'low_ion_ion.K',
+  # 'low_ion_ion.Rb', 'low_ion_ion.Cs',
+  'mul_O_ion.Li',
+  # 'mul_O_ion.Na',   'mul_O_ion.K',
+  # 'mul_O_ion.Rb',   'mul_O_ion.Cs',
+  'low_O_ion.Li',
+  # 'low_O_ion.Na',   'low_O_ion.K',
+  # 'low_O_ion.Rb',   'low_O_ion.Cs',
   'user', 'unique_id', 'positions', 'pbc', 'numbers', 'mtime', 'magmom',
-  'dipole', 'energy', 'forces'
+  'dipole', 'energy'
   ]
 df = df.drop(drop_col, axis=1)
 
 # delete erroneous calculations
 df = df[ df['Ecoord.Li'] > -3.0]
+df = df[ df['Ecoord.Li'] <  0.0]
 
 df.to_csv('tmp.csv')
 ```
@@ -103,6 +111,6 @@ sns.pairplot(df, vars=[
   'Ecoord.Li','mul_O_solv','low_O_solv','e_homo','e_lumo',
   'iso_polarizability',
   'total_dipole', 'ionization_potential', 'electron_affinity'
-  ], plot_kws={"s": 15}, diag_kind="hist", size=1.4)
+  ], plot_kws={"s": 15}, diag_kind="hist", size=1.2)
 plt.show()
 ```
