@@ -127,7 +127,7 @@ if IP_and_EA:
 	solv_c.set_calculator(calc_c)
 	traj = "solv_cat" + str(num).zfill(4) + ".traj"
 	FIRE(solv_c, trajectory=traj).run(fmax=fmax, steps=maxsteps)
-	E_cat = solv.get_potential_energy()
+	E_cat = solv_c.get_potential_energy()
 	#
 	#  anion
 	#
@@ -137,7 +137,7 @@ if IP_and_EA:
 	solv_a.set_calculator(calc_a)
 	traj = "solv_ani" + str(num).zfill(4) + ".traj"
 	FIRE(solv_a, trajectory=traj).run(fmax=fmax, steps=maxsteps)
-	E_ani = solv.get_potential_energy()
+	E_ani = solv_a.get_potential_energy()
 	#
 	IP = E_cat - E_solv
 	EA = E_ani - E_solv
