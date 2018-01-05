@@ -127,6 +127,7 @@ if IP_and_EA:
 	#
 	#  cation
 	#
+	print "calculating cation"
 	solv_c = solv.copy()
 	calc_c = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge+1, 
 			mult=mult+1, iterations=200, mulliken=True, memory=memory)
@@ -137,6 +138,7 @@ if IP_and_EA:
 	#
 	#  anion
 	#
+	print "calculating anion"
 	solv_a = solv.copy()
 	calc_a = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge-1,
 			mult=mult+1, iterations=200, mulliken=True, memory=memory)
@@ -162,7 +164,7 @@ for ion in ions:
 	ion_jsonfile = solv_jsonfile.split(".")[0] + "_" + ion + ".json"
 	db_ion       = connect(ion_jsonfile)
 
-	label_ion = workdir + "/coord_" + ion + "_"
+	label_ion = workdir + "/coord_" + ion
 
 	ion_solv = db_ion.get_atoms(num=num)
 	charge   = db_ion.get(num=num).calculator_parameters["charge"]
