@@ -2,16 +2,12 @@ from ase import Atoms
 # from ase.calculators.nwchem import NWChem
 import mynwchem
 from mynwchem import NWChem
-# from ase.calculators.gaussian import Gaussian
-
+from ase.calculators.gaussian import Gaussian
 from ase.db import connect
 from ase.optimize import BFGS
 from ase.io import read, write
-
 from ase.visualize import view
-
 from tools import delete_num_from_json
-
 import os, sys
 
 ions = []
@@ -29,6 +25,11 @@ for i in range(0, nions):
 print "ions", ions
 
 num = int(argvs[nions + 1])
+
+# workdir
+workdir = "/work/a_ishi"
+if not os.path.isdir(workdir):
+	os.makedirs(workdir)
 
 # solv_jsonfile = "electrolye_2017Aug.json"
 solv_jsonfile = "ishi3_new.json"
@@ -173,7 +174,7 @@ for ion in ions:
 		print "found in database"
 		delete_num_from_json(num, solv_ion_jsonfile)
 
- 	label = "calc" + ion + str(num).zfill(4) + "/nwchem_low"
+ 	label = workdir + "calc" + ion + str(num).zfill(4) + "/nwchem_low"
 
 	if "nw" in calculator:
 	 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 

@@ -4,8 +4,7 @@ from ase.db import connect
 from ase.optimize import FIRE
 from ase.io import read, write
 from tools import ABcoord
-import os
-import sys
+import os, sys
 import numpy as np
 from numpy import linalg
 import mynwchem
@@ -30,14 +29,19 @@ out_jsonfile  = "ishi3_final.json"
 
 # ---
 xc       = "B3LYP"
-basis    = "3-21G"
+basis    = "DZP"
 fmax     =  0.10
 memory   = "total 8 gb"
 response = "1 0.0"
 # ---
 
+# workdir
+workdir = "/work/a_ishi"
+if not os.path.isdir(workdir):
+	os.makedirs(workdir)
+
 # - label -
-label_solv = "calc" + str(num).zfill(4) + "/nwchem_solv"
+label_solv = workdir + "calc" + str(num).zfill(4) + "/nwchem_solv"
 # ---------
 
 db_solv = connect(solv_jsonfile)
@@ -156,7 +160,7 @@ for ion in ions:
 	ion_jsonfile = solv_jsonfile.split(".")[0] + "_" + ion + ".json"
 	db_ion       = connect(ion_jsonfile)
 
-	label_ion = "calc" + ion + str(num).zfill(4) + "/nwchem"
+	label_ion = workdir + "calc" + ion + str(num).zfill(4) + "/nwchem"
 
 	ion_solv = db_ion.get_atoms(num=num)
 	charge   = db_ion.get(num=num).calculator_parameters["charge"]

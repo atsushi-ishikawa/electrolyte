@@ -2,7 +2,6 @@ from ase import Atoms
 from ase.calculators.nwchem import NWChem
 from ase.calculators.gaussian import Gaussian
 from tools import delete_num_from_json
-
 from ase.db import connect
 from ase.optimize import BFGS
 from ase.io import read, write
@@ -18,12 +17,16 @@ calculator = calculator.lower()
 #solv_jsonfile = "electrolye_2017Aug.json"
 solv_jsonfile = "ishi3_new.json"
 
-# ---
 method = "B3LYP"
 basis  = "3-21G"
 fmax   = 0.10
-# ---
-label = "calc" + str(num).zfill(4) + "/low_solv"
+
+# workdir
+workdir = "/work/a_ishi"
+if not os.path.isdir(workdir):
+	os.makedirs(workdir)
+
+label = workdir + "calc" + str(num).zfill(4) + "/low_solv"
 
 db_solv = connect(solv_jsonfile)
 
