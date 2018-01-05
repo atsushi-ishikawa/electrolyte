@@ -4,7 +4,7 @@ from ase.db import connect
 from ase.optimize import FIRE
 from ase.io import read, write
 from tools import ABcoord
-import os, sys
+import os, sys, shutil
 import numpy as np
 from numpy import linalg
 import mynwchem

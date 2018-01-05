@@ -5,7 +5,7 @@ from mynwchem import NWChem
 from ase.db import connect
 from ase.optimize import FIRE
 from ase.io import read,write
-import os, sys
+import os, sys, shutil
 import numpy as np
 
 fmax = 0.20

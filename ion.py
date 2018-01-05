@@ -8,7 +8,7 @@ from ase.optimize import FIRE
 from ase.io import read, write
 from ase.visualize import view
 from tools import delete_num_from_json
-import os, sys
+import os, sys, shutil
 
 ions = []
 argvs = sys.argv
@@ -176,7 +176,7 @@ for ion in ions:
 		print "found in database"
 		delete_num_from_json(num, solv_ion_jsonfile)
 
- 	label = workdir + "/nwchem_low_" + ion + "_"
+ 	label = workdir + "/nwchem_low_" + ion
 
 	if "nw" in calculator:
 	 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
