@@ -3,7 +3,7 @@ from ase import Atoms
 import mynwchem
 from mynwchem import NWChem
 from ase.db import connect
-from ase.optimize import BFGS
+from ase.optimize import FIRE
 from ase.io import read,write
 import os, sys
 import numpy as np
@@ -19,11 +19,12 @@ argvs = sys.argv
 num = int(argvs[1])
 
 # workdir
-workdir = "/work/a_ishi"
-if not os.path.isdir(workdir):
-	os.makedirs(workdir)
+work = "/work/a_ishi/"
+if not os.path.isdir(work):
+	os.makedirs(work)
 
-label = workdir + "calc" + str(num).zfill(4) + "/low_solv"
+workdir = work + "calc" + str(num).zfill(4)
+label   = workdir + "/low_solv"
 
 smiles  = db_read.get(num=num).smiles
 name    = db_read.get(num=num).name
@@ -48,11 +49,13 @@ calc = NWChem(label=label, xc=xc, basis=basis, charge=charge, mult=1, iterations
               memory="8 gb", mulliken=True)
 mol.set_calculator(calc)
 
-opt = BFGS(mol)
+opt = FIRE(mol)
 opt.run(fmax=fmax)
 
 db_write.write(mol, smiles=smiles, name=name, num=num,
                molecular_weight=wgt, density=dens,
                boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem
             )
+
+shutil.rmtree(workdir)
 

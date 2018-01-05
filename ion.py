@@ -4,7 +4,7 @@ import mynwchem
 from mynwchem import NWChem
 from ase.calculators.gaussian import Gaussian
 from ase.db import connect
-from ase.optimize import BFGS
+from ase.optimize import FIRE
 from ase.io import read, write
 from ase.visualize import view
 from tools import delete_num_from_json
@@ -27,9 +27,11 @@ print "ions", ions
 num = int(argvs[nions + 1])
 
 # workdir
-workdir = "/work/a_ishi"
-if not os.path.isdir(workdir):
-	os.makedirs(workdir)
+work = "/work/a_ishi/"
+if not os.path.isdir(work):
+	os.makedirs(work)
+
+workdir = work + "calc" + str(num).zfill(4)
 
 # solv_jsonfile = "electrolye_2017Aug.json"
 solv_jsonfile = "ishi3_new.json"
@@ -174,7 +176,7 @@ for ion in ions:
 		print "found in database"
 		delete_num_from_json(num, solv_ion_jsonfile)
 
- 	label = workdir + "calc" + ion + str(num).zfill(4) + "/nwchem_low"
+ 	label = workdir + "/nwchem_low_" + ion + "_"
 
 	if "nw" in calculator:
 	 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
@@ -184,11 +186,13 @@ for ion in ions:
 					 charge=ion_charge, mult=1, nprocshared=12)
                         
  	traj = ion + "_low_" + str(num).zfill(4) + ".traj"
- 	BFGS(ion_solv, trajectory=traj).run(fmax=fmax)
+ 	FIRE(ion_solv, trajectory=traj).run(fmax=fmax)
  
  	db_ion.write(ion_solv, smiles=ion_smiles, name=name, num=num, 
 				molecular_weight=wgt, density=dens,
  				boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem,
  			  	level="low"
  			)
+
+shutil.rmtree(workdir)
 

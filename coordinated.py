@@ -36,12 +36,14 @@ response = "1 0.0"
 # ---
 
 # workdir
-workdir = "/work/a_ishi"
-if not os.path.isdir(workdir):
-	os.makedirs(workdir)
+work = "/work/a_ishi/"
+if not os.path.isdir(work):
+	os.makedirs(work)
+
+workdir = work + "calc" + str(num).zfill(4)
 
 # - label -
-label_solv = workdir + "calc" + str(num).zfill(4) + "/nwchem_solv"
+label_solv = workdir + "/solv"
 # ---------
 
 db_solv = connect(solv_jsonfile)
@@ -160,7 +162,7 @@ for ion in ions:
 	ion_jsonfile = solv_jsonfile.split(".")[0] + "_" + ion + ".json"
 	db_ion       = connect(ion_jsonfile)
 
-	label_ion = workdir + "calc" + ion + str(num).zfill(4) + "/nwchem"
+	label_ion = workdir + "/coord_" + ion + "_"
 
 	ion_solv = db_ion.get_atoms(num=num)
 	charge   = db_ion.get(num=num).calculator_parameters["charge"]
@@ -238,3 +240,6 @@ db_out.write(solv,num=num, smiles=smiles, name=name,
 					"electron_affinity"    : EA,
 					"Ecoord"      : Ecoord }
 			)
+
+shutil.rmtree(workdir)
+
