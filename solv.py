@@ -3,10 +3,9 @@ from ase.calculators.nwchem import NWChem
 from ase.calculators.gaussian import Gaussian
 from tools import delete_num_from_json
 from ase.db import connect
-from ase.optimize import BFGS
+from ase.optimize import FIRE
 from ase.io import read, write
-
-import os, sys
+import os, sys, shutil
 
 argvs = sys.argv
 num = int(argvs[1])
@@ -22,11 +21,12 @@ basis  = "3-21G"
 fmax   = 0.10
 
 # workdir
-workdir = "/work/a_ishi"
-if not os.path.isdir(workdir):
-	os.makedirs(workdir)
+work = "/work/a_ishi/"
+if not os.path.isdir(work):
+	os.makedirs(work)
 
-label = workdir + "calc" + str(num).zfill(4) + "/low_solv"
+workdir = work + "calc" + str(num).zfill(4)
+label   = workdir + "/low_solv"
 
 db_solv = connect(solv_jsonfile)
 
@@ -55,7 +55,7 @@ elif "gau" in calculator:
 	solv.calc = Gaussian(method=method, basis=basis, label=label, nprocshared=12, population="full")
 
 traj = "solv_low_" + str(num).zfill(4) + ".traj"
-BFGS(solv, trajectory=traj).run(fmax=fmax)
+FIRE(solv, trajectory=traj).run(fmax=fmax)
 
 delete_num_from_json(num, solv_jsonfile)
 
@@ -63,4 +63,6 @@ db_solv.write(solv, smiles=smiles, name=name, num=num,
 		molecular_weight=wgt, density=dens,
 		boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem
 	    )
+
+shutil.rmtree(workdir)
 

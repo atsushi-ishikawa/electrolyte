@@ -4,7 +4,7 @@ from ase.db import connect
 from ase.optimize import FIRE
 from ase.io import read, write
 from tools import ABcoord
-import os, sys
+import os, sys, shutil
 import numpy as np
 from numpy import linalg
 import mynwchem
@@ -36,12 +36,14 @@ response = "1 0.0"
 # ---
 
 # workdir
-workdir = "/work/a_ishi"
-if not os.path.isdir(workdir):
-	os.makedirs(workdir)
+work = "/work/a_ishi/"
+if not os.path.isdir(work):
+	os.makedirs(work)
+
+workdir = work + "calc" + str(num).zfill(4)
 
 # - label -
-label_solv = workdir + "calc" + str(num).zfill(4) + "/nwchem_solv"
+label_solv = workdir + "/solv"
 # ---------
 
 db_solv = connect(solv_jsonfile)
@@ -125,6 +127,7 @@ if IP_and_EA:
 	#
 	#  cation
 	#
+	print "calculating cation"
 	solv_c = solv.copy()
 	calc_c = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge+1, 
 			mult=mult+1, iterations=200, mulliken=True, memory=memory)
@@ -135,6 +138,7 @@ if IP_and_EA:
 	#
 	#  anion
 	#
+	print "calculating anion"
 	solv_a = solv.copy()
 	calc_a = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge-1,
 			mult=mult+1, iterations=200, mulliken=True, memory=memory)
@@ -160,7 +164,7 @@ for ion in ions:
 	ion_jsonfile = solv_jsonfile.split(".")[0] + "_" + ion + ".json"
 	db_ion       = connect(ion_jsonfile)
 
-	label_ion = workdir + "calc" + ion + str(num).zfill(4) + "/nwchem"
+	label_ion = workdir + "/coord_" + ion
 
 	ion_solv = db_ion.get_atoms(num=num)
 	charge   = db_ion.get(num=num).calculator_parameters["charge"]
@@ -238,3 +242,6 @@ db_out.write(solv,num=num, smiles=smiles, name=name,
 					"electron_affinity"    : EA,
 					"Ecoord"      : Ecoord }
 			)
+
+shutil.rmtree(workdir)
+
