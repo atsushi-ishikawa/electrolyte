@@ -9,10 +9,18 @@ import os, sys
 
 argvs  = sys.argv
 dbfile = argvs[1]
-num = int(argvs[2])
+entry  = argvs[2]
 
 db  = connect(dbfile)
-mol = db.get_atoms(num=num)
+
+try:
+	# find molecule by number
+	entry = int(entry)
+	mol = db.get_atoms(num=entry)
+except:
+	# find molecule by name
+	entry = entry
+	mol = db.get_atoms(name=entry)
 
 view(mol)
 
