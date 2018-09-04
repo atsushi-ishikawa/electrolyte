@@ -16,8 +16,9 @@
         "smiles": "CC1COC(=O)O1",
         "molecular_weight": 102.089,
         "name": "PROPYLENE CARBONATE",
-        "num": 1
-    }
+        "num": 1,
+        "numbers": [1] # dummy key needed to insert at new ASE
+     }
     ...
 }
 ```
@@ -111,6 +112,6 @@ sns.pairplot(df, vars=[
   'Ecoord.Li','mul_O_solv','low_O_solv','e_homo','e_lumo',
   'iso_polarizability',
   'total_dipole', 'ionization_potential', 'electron_affinity'
-  ], plot_kws={"s": 15}, diag_kind="hist", size=1.2)
+  ], plot_kws={"s": 15}, diag_kind="hist", size=1.3)
 plt.show()
 ```
