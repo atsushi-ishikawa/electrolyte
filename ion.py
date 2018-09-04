@@ -13,7 +13,7 @@ import os, sys, shutil
 ions = []
 argvs = sys.argv
 
-calculator = "nwchem"
+calculator = "gaussian"
 calculator = calculator.lower()
 
 nions = len(argvs) - 2 # number of ion species
@@ -38,8 +38,9 @@ solv_jsonfile = "ishi3_new.json"
 
 # ---
 xc    = "B3LYP"
-#basis = "6-31G*"
-basis = "DZP"
+basis = "3-21G"
+#basis = "DZP"
+#basis = "ADZP"
 fmax  =  0.10
 memory = "total 8 gb"
 # ---
@@ -75,7 +76,7 @@ for ion in ions:
 
 		if ion in ["Li", "Na", "K", "Rb", "Cs"]:
 			ion_charge = 1
-		elif ion == "Mg":
+		elif ion in ["Mg", "Be", "Ca", "Sr", "Ba"]:
 			ion_charge = 2
 		else:
 			print "only AlcaliMetal and Mg is allowed" ; quit()
@@ -180,10 +181,10 @@ for ion in ions:
 
 	if "nw" in calculator:
 	 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
- 				       iterations=200, mulliken=True, memory=memory) # cation
+							   iterations=200, mulliken=True, memory=memory) # cation
 	elif "gau" in calculator:
  		ion_solv.calc = Gaussian(method=xc, basis=basis, label=label, 
-					 charge=ion_charge, mult=1, nprocshared=12)
+								 charge=ion_charge, mult=1, nprocshared=12, population="full")
                         
  	traj = ion + "_low_" + str(num).zfill(4) + ".traj"
  	FIRE(ion_solv, trajectory=traj).run(fmax=fmax)

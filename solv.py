@@ -10,7 +10,7 @@ import os, sys, shutil
 argvs = sys.argv
 num = int(argvs[1])
 
-calculator = "nwchem"
+calculator = "gaussian"
 calculator = calculator.lower()
 
 #solv_jsonfile = "electrolye_2017Aug.json"
