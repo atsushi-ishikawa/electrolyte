@@ -14,7 +14,7 @@ calculator = "gaussian"
 calculator = calculator.lower()
 
 #solv_jsonfile = "electrolye_2017Aug.json"
-solv_jsonfile = "ishi3_new.json"
+solv_jsonfile = "ishi3_new.json" # read from & write to this file
 
 method = "B3LYP"
 basis  = "3-21G"
@@ -48,11 +48,13 @@ charge = 0
 if num == 106:
 	charge = -1
 
-if "nw" in calculator:
+if "gau" in calculator:
+	solv.calc = Gaussian(method=xc, basis=basis, label=label, 
+						 charge=charge, mult=1, nprocshared=12, population="full")
+
+elif "nw" in calculator:
 	solv.calc = NWChem(label=label, xc=method, basis=basis, charge=charge, mult=1, iterations=200,
 			   mulliken=True)
-elif "gau" in calculator:
-	solv.calc = Gaussian(method=method, basis=basis, label=label, nprocshared=12, population="full")
 
 traj = "solv_low_" + str(num).zfill(4) + ".traj"
 FIRE(solv, trajectory=traj).run(fmax=fmax)
@@ -60,9 +62,9 @@ FIRE(solv, trajectory=traj).run(fmax=fmax)
 delete_num_from_json(num, solv_jsonfile)
 
 db_solv.write(solv, smiles=smiles, name=name, num=num, 
-		molecular_weight=wgt, density=dens,
-		boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem
-	    )
+			  molecular_weight=wgt, density=dens,
+ 			  boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem
+ 			 )
 
 shutil.rmtree(workdir)
 

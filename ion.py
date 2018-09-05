@@ -63,7 +63,6 @@ except:
 #
 # now loop over ions
 #
-
 for ion in ions:
 	solv_ion_jsonfile = solv_jsonfile.split(".")[0] + "_" + ion + ".json"
 	db_ion = connect(solv_ion_jsonfile)
@@ -172,19 +171,19 @@ for ion in ions:
 
 		ion_solv  = read("tmp.xyz")
 	else:
+		print "found in database"
 		ion_charge = db_ion.get(num=num).calculator_parameters["charge"]
 		ion_smiles = db_ion.get(num=num).smiles
-		print "found in database"
 		delete_num_from_json(num, solv_ion_jsonfile)
 
- 	label = workdir + "/nwchem_low_" + ion
-
-	if "nw" in calculator:
-	 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
-							   iterations=200, mulliken=True, memory=memory) # cation
-	elif "gau" in calculator:
+	if "gau" in calculator:
+ 		label = workdir + "/g16_low_" + ion
  		ion_solv.calc = Gaussian(method=xc, basis=basis, label=label, 
 								 charge=ion_charge, mult=1, nprocshared=12, population="full")
+	elif "nw" in calculator:
+ 		label = workdir + "/nwchem_low_" + ion
+	 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
+							   iterations=200, mulliken=True, memory=memory) # cation
                         
  	traj = ion + "_low_" + str(num).zfill(4) + ".traj"
  	FIRE(ion_solv, trajectory=traj).run(fmax=fmax)

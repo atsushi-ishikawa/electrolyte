@@ -1,5 +1,6 @@
 from ase import Atoms
 # from ase.calculators.nwchem import NWChem
+from ase.calculators.gaussian import Gaussian
 import mynwchem
 from mynwchem import NWChem
 from ase.db import connect
@@ -11,6 +12,7 @@ import numpy as np
 fmax = 0.20
 xc = "B3LYP"
 basis  = "3-21G"
+calculator = "gaussian"
 
 db_read  = connect("ishi3.json")
 db_write = connect("ishi3_new.json")
@@ -45,8 +47,11 @@ charge = 0
 if num == 106: # benzoate
 	charge = -1
 	
-calc = NWChem(label=label, xc=xc, basis=basis, charge=charge, mult=1, iterations=100, \
-              memory="8 gb", mulliken=True)
+if "gau" in calculator:
+	calc = Gaussian(label=label, xc=xc, basis=basis, charge=charge, mult=1, population="full")
+else:
+	calc = NWChem(label=label, xc=xc, basis=basis, charge=charge, mult=1, iterations=100, \
+				  memory="8 gb", mulliken=True)
 mol.set_calculator(calc)
 
 opt = FIRE(mol)

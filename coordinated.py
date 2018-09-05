@@ -15,11 +15,13 @@ argvs = sys.argv
 
 nions = len(argvs) - 2 
 
-IP_and_EA = True
+IP_and_EA = False
 polarizability = False
 
 calculator = "gaussian"
 calculator = calculator.lower()
+
+population = "nbo"
 
 # get ion list
 for i in range(0, nions):
@@ -34,7 +36,7 @@ out_jsonfile  = "ishi3_final.json"
 
 # ---
 xc       = "B3LYP"
-basis    = "DZP"
+basis    = "6-31G"
 fmax     =  0.10
 memory   = "total 8 gb"
 response = "1 0.0"
@@ -73,8 +75,12 @@ except:
 	pubchem = ""
 
 # get charge and multiplicity from old file
-charge = db_solv.get(num=num).calculator_parameters["charge"]
-mult   = db_solv.get(num=num).calculator_parameters["mult"]
+try:
+	charge = db_solv.get(num=num).calculator_parameters["charge"]
+	mult   = db_solv.get(num=num).calculator_parameters["mult"]
+except:
+	charge = 0
+	mult   = 1
 
 print " --- calculating num = ",num, "(", name,")"
 print "solvent"
@@ -85,7 +91,7 @@ print "solvent"
 if "gau" in calculator:
 	calc = Gaussian(label=label_solv, xc=xc, basis=basis, charge=charge, 
 				    mult=mult, population="full,nbo")
-else:
+elif "nw" in calcullator:
 	calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, 
 				  mult=mult, iterations=200, mulliken=True, memory=memory)
 
@@ -104,11 +110,24 @@ E_solv = solv.get_potential_energy()
 #
 # --- analyze results ---
 #
-mul_charge = calc.results["mul_charge"] 
-low_charge = calc.results["low_charge"] 
+if "gau" in calculator:
+	atomic_charge = solv.get_nbo_charge()
+elif "nw" in calculator:
+	if population=="mulliken":
+		atomic_charge = calc.results["mul_charge"] 
+	elif population=="lowdin":
+		atomic_charge = calc.results["low_charge"] 
+	else:
+		print "choose population"
+		exit()
 
-e_homo = calc.get_homo_energy()
-e_lumo = calc.get_lumo_energy()
+if "gau" in calculator:
+	mo_energy = solv.get_mo_energy()
+	e_homo = mo_energy[0][-1]
+	e_lumo = mo_energy[1][0]
+elif "nw" in calculator:
+	e_homo = calc.get_homo_energy()
+	e_lumo = calc.get_lumo_energy()
 
 if polarizability:
 	polar = calc.results["polarizability"]
@@ -118,20 +137,25 @@ if polarizability:
 dipole       = calc.get_dipole_moment() ; dipole = np.array(dipole)
 total_dipole = linalg.norm(dipole)
 #
-# Get mulliken charge of solvent's O atom
+# Get atomic charge of solvent's O atom
 # which is "going to" coordinate to ion.
 # Coordinating O is determined from highest MO 
 # with large coef on O.
 #
-(mo_cent, element, occ) = calc.get_mo_center()
-
-O_cent = calc.get_atomcentered_occupied_mo("O")
-highest_O_cent_mo = O_cent[-1]
-O_cent_mo = mo_cent[highest_O_cent_mo]
-
-mul_O_solv = mul_charge[O_cent_mo-1]
-low_O_solv = low_charge[O_cent_mo-1]
-
+if "gau" in calculator:
+	mocoef, basis_to_atom = solv.get_mo_coeff()
+	nocc = len(mo_energy[0])
+	c_homo = mocoef[nocc-1]
+	c_homo = np.array(c_homo)
+	maxind  = np.argmax(map(abs, c_homo))
+	O_coord = basis_to_atom[maxind] # atom index where HOMO coefficient is maximum --> coordinating O atom
+	O_solv_charge = atomic_charge[O_coord]
+elif "nw" in calculator:
+	(mo_cent, element, occ) = calc.get_mo_center()
+	O_coord = calc.get_atomcentered_occupied_mo("O")
+	highest_O_coord_mo = O_coord[-1]
+	O_coord_mo = mo_cent[highest_O_coord_mo]
+	O_solv_charge = atomic_charge[O_coord_mo - 1]
 #
 #  --- IP and EA calculation ---
 #
@@ -142,12 +166,19 @@ if IP_and_EA:
 	print "calculating cation"
 	solv_c = solv.copy()
 	if "gau" in calculator:
-		calc_c = Gaussian(label=label_solv, xc=xc, basis=basis, charge=charge+1, 
-						  mult=mult+1, population="full,nbo")
+		calc_c = Gaussian(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, population="full,nbo")
 	else:
-		calc_c = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge+1, 
-						mult=mult+1, iterations=200, mulliken=True, memory=memory)
+		calc_c = NWChem(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, iterations=200, mulliken=True, memory=memory)
+
+	chg = solv_c.get_initial_charges()
+	mlt = solv_c.get_initial_magnetic_moments()
+
+	chg[0] += 1 ; mlt=[0] += 1
+
+	solv_c.set_initial_charges(charges=chg)
+	solv_c.set_initial_magnetic_moments(magmoms=mlt)
 	solv_c.set_calculator(calc_c)
+
 	traj = "solv_cat" + str(num).zfill(4) + ".traj"
 	FIRE(solv_c, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 	E_cat = solv_c.get_potential_energy()
@@ -157,12 +188,19 @@ if IP_and_EA:
 	print "calculating anion"
 	solv_a = solv.copy()
 	if "gau" in calculator:
-		calc_a = Gaussian(label=label_solv, xc=xc, basis=basis, charge=charge-1,
-						  mult=mult+1, population="full,nbo")
+		calc_a = Gaussian(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, population="full,nbo")
 	else:
-		calc_a = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge-1,
-						mult=mult+1, iterations=200, mulliken=True, memory=memory)
+		calc_a = NWChem(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, iterations=200, mulliken=True, memory=memory)
+
+	chg = solv_a.get_initial_charges()
+	mlt = solv_a.get_initial_magnetic_moments()
+
+	chg[0] -= 1 ; mlt=[0] += 1
+
+	solv_a.set_initial_charges(charges=chg)
+	solv_a.set_initial_magnetic_moments(magmoms=mlt)
 	solv_a.set_calculator(calc_a)
+
 	traj = "solv_ani" + str(num).zfill(4) + ".traj"
 	FIRE(solv_a, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 	E_ani = solv_a.get_potential_energy()
@@ -175,10 +213,11 @@ else:
 # -----------------------------------
 # --------- ion coordinated ---------
 # -----------------------------------
-e_homo_ion  = {} ; e_lumo_ion  = {}
-mul_ion_ion = {} ; mul_O_ion   = {}
-low_ion_ion = {} ; low_O_ion   = {}
-Ecoord  = {}     ; R_ion_O = {}
+#  descriptors for coordinates system
+#    coordination energy (Ecoord) and ion-O distance (R_ion_O)
+#
+Ecoord  = {}
+R_ion_O = {}
 
 for ion in ions:
 	ion_jsonfile = solv_jsonfile.split(".")[0] + "_" + ion + ".json"
@@ -187,13 +226,16 @@ for ion in ions:
 	label_ion = workdir + "/coord_" + ion
 
 	ion_solv = db_ion.get_atoms(num=num)
-	charge   = db_ion.get(num=num).calculator_parameters["charge"]
-	mult     = db_ion.get(num=num).calculator_parameters["mult"]
+	try:
+		charge = db_ion.get(num=num).calculator_parameters["charge"]
+		mult   = db_ion.get(num=num).calculator_parameters["mult"]
+	except:
+		charge = 0
+		mult   = 1
 
 	print ion, " coordinated"
 	if "gau" in calculator:
-		calc = Gaussian(label=label_ion, xc=xc, basis=basis, charge=charge, 
-					    mult=mult, population="full,nbo") # cat
+		calc = Gaussian(label=label_ion, xc=xc, basis=basis, charge=charge, mult=mult, population="full,nbo") # cat
 	else:
 		calc = NWChem(label=label_ion, xc=xc, basis=basis, charge=charge, 
 					  mult=mult, iterations=200, mulliken=True, memory=memory) # cat
@@ -203,11 +245,6 @@ for ion in ions:
 	FIRE(ion_solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
 
 	E_ion_solv = ion_solv.get_potential_energy()
-	#
-	# Mulliken and Lowdin charge
-	#
-	mul_charge_ion = calc.results["mul_charge"]
-	low_charge_ion = calc.results["low_charge"]
 
 	e_homo_ion[ion] = calc.get_homo_energy()
 	e_lumo_ion[ion] = calc.get_lumo_energy()
@@ -216,12 +253,6 @@ for ion in ions:
 
 	lst = ion_solv.get_chemical_symbols()
 	ion_idx = lst.index(ion)
-
-	mul_ion_ion[ion] = mul_charge_ion[ion_idx] # ion
-	mul_O_ion[ion]   = mul_charge_ion[O_idx]   # coordinating O of O-Li
-	low_ion_ion[ion] = low_charge_ion[ion_idx] # ion
-	low_O_ion[ion]   = low_charge_ion[O_idx]   # coordinating O of O-Li
-
 	#
 	# get energy of ion 
 	#
@@ -230,20 +261,16 @@ for ion in ions:
 	elif ion == "Mg":
 		ion_charge = 2
 	else:
-		print "only alkaline metal and Mg is allowed" ; quit()
-
-	if "nw" in calculator:
-		label_atom = "calc" + ion + "/nwchem"
-	elif "gau" in calculator:
-		label_atop = "calc" + ion + "/g16"
-	else:
+		print "only alkaline metal and Mg is allowed"
 		exit()
 
 	ion_atom = Atoms(ion, positions=[(0,0,0)])
 	if "gau" in calculator:
+		label_atop = "calc" + ion + "/g16"
 		ion_atom.calc = Gaussian(label=label_atom, xc=xc, basis=basis, 
 								 charge=ion_charge, population="full,nbo")
-	else:
+	elif "nw" in calculator:
+		label_atom = "calc" + ion + "/nwchem"
 		ion_atom.calc = NWChem(label=label_atom, xc=xc, basis=basis, 
 							   charge=ion_charge, mulliken=True)
 
@@ -256,23 +283,16 @@ for ion in ions:
 db_out.write(solv,num=num, smiles=smiles, name=name,
 			  	molecular_weight=wgt, density=dens,
 			  	boiling_point=bp, melting_point=mp, flushing_point=fp,
-				data={	"e_homo"       : e_homo,
-					"e_lumo"       : e_lumo,
-					"e_homo_ion"   : e_homo_ion,
-					"e_lumo_ion"   : e_lumo_ion,
-					"mul_O_solv"   : mul_O_solv,
-					"mul_ion_ion"  : mul_ion_ion,
-					"mul_O_ion"    : mul_O_ion,
-					"low_O_solv"   : low_O_solv,
-					"low_ion_ion"  : low_ion_ion,
-					"low_O_ion"    : low_O_ion,
-					"R_ion_O"      : R_ion_O,
-					"total_dipole" : total_dipole,
-					"iso_polarizability"   : iso_pol,
-					"aniso_polarizability" : aniso_pol,
-					"ionization_potential" : IP,
-					"electron_affinity"    : EA,
-					"Ecoord"      : Ecoord }
+				data={	"e_homo"        : e_homo,
+						"e_lumo"        : e_lumo,
+						"O_solv_charge" : O_solv_charge,
+						"R_ion_O"       : R_ion_O,
+						"total_dipole"  : total_dipole,
+					#	"iso_polarizability"   : iso_pol,
+					#	"aniso_polarizability" : aniso_pol,
+					#	"ionization_potential" : IP,
+					#	"electron_affinity"    : EA,
+						"Ecoord"        : Ecoord }
 			)
 
 shutil.rmtree(workdir)

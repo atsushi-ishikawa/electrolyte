@@ -11,7 +11,7 @@ import os, sys
 argvs = sys.argv
 num = int(argvs[1])
 
-calculator = "nwchem"
+calculator = "gaussian"
 calculator = calculator.lower()
 
 orig_jsonfile = "sode_orig.json"
@@ -45,7 +45,6 @@ elif "gau" in calculator:
 traj = "solv_low_" + str(num).zfill(4) + ".traj"
 BFGS(solv, trajectory=traj).run(fmax=fmax)
 
-###
 db_sol.write(solv, smiles=smiles, abb_name=abb_name, num=num, 
 		   molecular_weight=wgt, density=dens,
 		   boiling_point=bp, melting_point=mp, flushing_point=fp,
