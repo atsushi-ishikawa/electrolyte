@@ -9,9 +9,9 @@ from ase.io import read,write
 import os, sys, shutil
 import numpy as np
 
-fmax = 0.20
-xc = "B3LYP"
-basis  = "3-21G"
+fmax  = 0.20
+xc    = "B3LYP"
+basis = "3-21G"
 calculator = "gaussian"
 
 db_read  = connect("ishi3.json")
@@ -21,12 +21,12 @@ argvs = sys.argv
 num = int(argvs[1])
 
 # workdir
-work = "/work/a_ishi/"
-if not os.path.isdir(work):
-	os.makedirs(work)
-
+work    = "/work/a_ishi/"
 workdir = work + "calc" + str(num).zfill(4)
 label   = workdir + "/low_solv"
+
+if not os.path.isdir(label):
+	os.makedirs(label)
 
 smiles  = db_read.get(num=num).smiles
 name    = db_read.get(num=num).name
@@ -37,18 +37,18 @@ mp      = db_read.get(num=num).melting_point
 fp      = db_read.get(num=num).flushing_point
 pubchem = db_read.get(num=num).pubchemCID
 
-babel_str = 'obabel ' + '-:"' + smiles + '" -oxyz -O tmp.xyz -h --gen3D'
-
+tmpxyz = label + "/tmp.xyz"
+babel_str = 'obabel ' + '-:"' + smiles + '" -oxyz -O ' + tmpxyz + ' -h --gen3D'
 os.system(babel_str)
 
-mol  = read("tmp.xyz")
+mol = read(tmpxyz)
 
 charge = 0
 if num == 106: # benzoate
 	charge = -1
 	
 if "gau" in calculator:
-	calc = Gaussian(label=label, xc=xc, basis=basis, charge=charge, mult=1, population="full")
+	calc = Gaussian(label=label, method=xc, basis=basis, charge=charge, mult=1, population="full")
 else:
 	calc = NWChem(label=label, xc=xc, basis=basis, charge=charge, mult=1, iterations=100, \
 				  memory="8 gb", mulliken=True)
