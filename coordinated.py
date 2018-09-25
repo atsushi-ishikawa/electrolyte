@@ -8,7 +8,7 @@ from tools import ABcoord
 import os, sys, shutil
 import numpy as np
 from numpy import linalg
-from mygaussian import *
+from mygaussian import prepare_basisfile
 
 ions = []
 argvs = sys.argv
@@ -37,6 +37,7 @@ out_jsonfile  = "ishi3_final.json"
 xc       = "B3LYP"
 #basis    = "cc-pvdz"
 #basis    = "svp"
+basis = "genECP"
 basisfile = "basis.bas"
 
 basisname = "def2-svp"
@@ -97,7 +98,8 @@ print "solvent"
 #
 if "gau" in calculator:
 	prepare_basisfile(solv, basisfile=basisfile, basisname=basisname)
- 	solv.calc = Gaussian(label=label_solv, method=xc, basisfile=basisfile, charge=charge, multiplicity=mult, opt=opt)
+ 	solv.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, opt=opt, force=None)
+	solv.get_potential_energy()
 elif "nw" in calcullator:
 	solv.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, mult=mult, iterations=200, mulliken=True, memory=memory)
 	traj = "solv_" + str(num).zfill(4) + ".traj"
@@ -106,7 +108,7 @@ elif "nw" in calcullator:
 # single point calculation
 #
 if "gau" in calculator:
- 	solv.calc = Gaussian(label=label_solv, method=xc, basisfile=basisfile, charge=charge, multiplicity=mult, force=None, pop="full,nbo")
+ 	solv.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, force=None, pop="full,nbo")
 elif "nw" in calculator:
 	if polarizability:
 		solv.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, mult=mult,
@@ -181,7 +183,8 @@ if IP_and_EA:
 	solv_c = solv.copy()
 	if "gau" in calculator:
 		prepare_basisfile(solv_c, basisfile=basisfile, basisname=basisname)
-		solv_c.calc = Gaussian(label=label_solv, method=xc, basisfile=basisfile, charge=charge+1, multiplicity=mult+1, population="full,nbo", opt=opt)
+		solv_c.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge+1, multiplicity=mult+1, 
+							   population="full,nbo", opt=opt, force=None)
 	elif "nw" in calculator:
 		solv_c.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, iterations=200, mulliken=True, memory=memory)
 		traj = "solv_cat" + str(num).zfill(4) + ".traj"
@@ -195,7 +198,8 @@ if IP_and_EA:
 	solv_a = solv.copy()
 	if "gau" in calculator:
 		prepare_basisfile(solv_a, basisfile=basisfile, basisname=basisname)
-		solv_a.calc = Gaussian(label=label_solv, method=xc, basisfile=basisfile, charge=charge-1, multiplicity=mult+1, population="full,nbo", opt=opt)
+		solv_a.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge-1, multiplicity=mult+1,
+							   population="full,nbo", opt=opt, force=None)
 	elif "nw" in calculator:
 		solv_a.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, iterations=200, mulliken=True, memory=memory)
 		traj = "solv_ani" + str(num).zfill(4) + ".traj"
@@ -234,9 +238,9 @@ for ion in ions:
 
 	print ion, "coordinated"
 	if "gau" in calculator:
-		prepare_basisfile(solv, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
-		ion_solv.calc = Gaussian(label=label_ion, method=xc, basisfile=basisfile, charge=charge, 
-								 multiplicity=mult, population="full,nbo", opt=opt) # cat
+		prepare_basisfile(ion_solv, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
+		ion_solv.calc = Gaussian(label=label_ion, method=xc, basis=basis, basisfile=basisfile, charge=charge, 
+								 multiplicity=mult, population="full,nbo", opt=opt, force=None) # cat
 	elif "nw" in calculator:
 		ion_solv.calc = NWChem(label=label_ion, xc=xc, basis=basis, charge=charge, mult=mult, iterations=200, mulliken=True, memory=memory) # cat
 		traj = ion + str(num).zfill(4) + ".traj"
@@ -262,7 +266,7 @@ for ion in ions:
 	if "gau" in calculator:
 		label_atom = "calc" + ion + "/g16"
 		prepare_basisfile(ion_atom, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
-		ion_atom.calc = Gaussian(label=label_atom, method=xc, basisfile=basisfile, 
+		ion_atom.calc = Gaussian(label=label_atom, method=xc, basis=basis, basisfile=basisfile, 
 								 charge=ion_charge, population="full,nbo")
 	elif "nw" in calculator:
 		label_atom = "calc" + ion + "/nwchem"
