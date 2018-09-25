@@ -42,7 +42,6 @@ basisfile = "basis.bas"
 
 basisname = "def2-svp"
 ecpname   = "def2"
-ecplist = {"Rb": ecpname, "Cs": ecpname}
 
 fmax     =  0.10
 memory   = "total 8 gb"
@@ -162,6 +161,7 @@ if "gau" in calculator:
 	nocc    = len(mo_energy[0])
 	c_homo  = np.array( mocoef[nocc-1] )
 	maxind  = np.argmax(map(abs, c_homo))
+	print "O_coord:",O_coord
 	O_coord = basis_to_atom[maxind] # atom index where HOMO coefficient is maximum --> coordinating O atom
 	for pop in population:
 		O_solv_charge[pop] = atomic_charge[pop][O_coord]
@@ -222,6 +222,13 @@ Ecoord  = {}
 R_ion_O = {}
 
 for ion in ions:
+	if ion == "Rb":
+		ecplist = {"Rb": ecpname}
+	elif ion == "Cs":
+		ecplist = {"Cs": ecpname}
+	else:
+		ecplist = None
+
 	ion_jsonfile = solv_jsonfile.split(".")[0] + "_" + ion + ".json"
 	db_ion       = connect(ion_jsonfile)
 
@@ -278,7 +285,6 @@ for ion in ions:
 	Ecoord[ion] = E_ion_solv - ( E_ion + E_solv )
 
 	print "Ecoord for",ion," = ",Ecoord[ion]
-	print E_ion_solv, E_ion, E_solv
 
 # end ion loop
 
