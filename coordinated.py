@@ -41,6 +41,7 @@ basisfile = "basis.bas"
 
 basisname = "def2-svp"
 ecpname   = "def2"
+ecplist = {"Rb": ecpname, "Cs": ecpname}
 
 fmax     =  0.10
 memory   = "total 8 gb"
@@ -50,10 +51,10 @@ opt = "newton"
 
 # workdir
 work = "/work/a_ishi/"
-if not os.path.isdir(work):
-	os.makedirs(work)
-
 workdir = work + "calc" + str(num).zfill(4)
+if not os.path.isdir(workdir):
+	os.makedirs(workdir)
+
 basisfile = os.path.join(workdir, basisfile)
 
 # label
@@ -96,7 +97,7 @@ print "solvent"
 #
 if "gau" in calculator:
 	prepare_basisfile(solv, basisfile=basisfile, basisname=basisname)
- 	solv.calc = Gaussian(label=label_solv, method=xc, basis=basis, charge=charge, multiplicity=mult, opt=opt)
+ 	solv.calc = Gaussian(label=label_solv, method=xc, basisfile=basisfile, charge=charge, multiplicity=mult, opt=opt)
 elif "nw" in calcullator:
 	solv.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, mult=mult, iterations=200, mulliken=True, memory=memory)
 	traj = "solv_" + str(num).zfill(4) + ".traj"
@@ -105,7 +106,7 @@ elif "nw" in calcullator:
 # single point calculation
 #
 if "gau" in calculator:
- 	solv.calc = Gaussian(label=label_solv, method=xc, basis=basis, charge=charge, multiplicity=mult, force=None, pop="full,nbo")
+ 	solv.calc = Gaussian(label=label_solv, method=xc, basisfile=basisfile, charge=charge, multiplicity=mult, force=None, pop="full,nbo")
 elif "nw" in calculator:
 	if polarizability:
 		solv.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, mult=mult,
@@ -123,7 +124,7 @@ if "gau" in calculator:
 	for pop in population:
 		if pop=="mulliken":
 			atomic_charge[pop] = solv.get_mulliken_charge()
-		elif pop="nbo":
+		elif pop=="nbo":
 			atomic_charge[pop] = solv.get_nbo_charge()
 elif "nw" in calculator:
 	if population=="mulliken":
@@ -147,12 +148,13 @@ if polarizability:
 	iso_pol   = polar[0]
 	aniso_pol = polar[1]
 
-dipole       = calc.get_dipole_moment() ; dipole = np.array(dipole)
+dipole       = solv.calc.get_dipole_moment() ; dipole = np.array(dipole)
 total_dipole = linalg.norm(dipole)
 #
 # Get atomic charge of solvent's O atom which is "going to" coordinate to ion.
 # Coordinating O is determined from highest MO with large coef on O.
 #
+O_solv_charge = {}
 if "gau" in calculator:
 	mocoef, basis_to_atom = solv.get_mo_coeff()
 	nocc    = len(mo_energy[0])
@@ -166,7 +168,8 @@ elif "nw" in calculator:
 	O_coord = calc.get_atomcentered_occupied_mo("O")
 	highest_O_coord_mo = O_coord[-1]
 	O_coord_mo = mo_cent[highest_O_coord_mo]
-	O_solv_charge = atomic_charge[O_coord_mo - 1]
+	for pop in population:
+		O_solv_charge[pop] = atomic_charge[pop][O_coord_mo - 1]
 #
 #  --- IP and EA calculation ---
 #
@@ -177,7 +180,8 @@ if IP_and_EA:
 	print "calculating cation"
 	solv_c = solv.copy()
 	if "gau" in calculator:
-		solv_c.calc = Gaussian(label=label_solv, method=xc, basis=basis, charge=charge+1, multiplicity=mult+1, population="full,nbo", opt=opt)
+		prepare_basisfile(solv_c, basisfile=basisfile, basisname=basisname)
+		solv_c.calc = Gaussian(label=label_solv, method=xc, basisfile=basisfile, charge=charge+1, multiplicity=mult+1, population="full,nbo", opt=opt)
 	elif "nw" in calculator:
 		solv_c.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, iterations=200, mulliken=True, memory=memory)
 		traj = "solv_cat" + str(num).zfill(4) + ".traj"
@@ -190,7 +194,8 @@ if IP_and_EA:
 	print "calculating anion"
 	solv_a = solv.copy()
 	if "gau" in calculator:
-		solv_a.calc = Gaussian(label=label_solv, method=xc, basis=basis, charge=charge-1, multiplicity=mult+1, population="full,nbo", opt=opt)
+		prepare_basisfile(solv_a, basisfile=basisfile, basisname=basisname)
+		solv_a.calc = Gaussian(label=label_solv, method=xc, basisfile=basisfile, charge=charge-1, multiplicity=mult+1, population="full,nbo", opt=opt)
 	elif "nw" in calculator:
 		solv_a.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, iterations=200, mulliken=True, memory=memory)
 		traj = "solv_ani" + str(num).zfill(4) + ".traj"
@@ -226,14 +231,12 @@ for ion in ions:
 		charge = 0
 		mult   = 1
 
-	if ion in ["Rb","Cs"]:
-		ecplist = {"Rb": ecpname, "Cs": ecpname}
 
 	print ion, "coordinated"
 	if "gau" in calculator:
 		prepare_basisfile(solv, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
-		ion_solv.calc = Gaussian(label=label_ion, method=xc, basis=basis, charge=charge, 
-								 multiplicity=mult, population="full,nbo", opt=opt, basisfile=basisfile) # cat
+		ion_solv.calc = Gaussian(label=label_ion, method=xc, basisfile=basisfile, charge=charge, 
+								 multiplicity=mult, population="full,nbo", opt=opt) # cat
 	elif "nw" in calculator:
 		ion_solv.calc = NWChem(label=label_ion, xc=xc, basis=basis, charge=charge, mult=mult, iterations=200, mulliken=True, memory=memory) # cat
 		traj = ion + str(num).zfill(4) + ".traj"
@@ -258,7 +261,8 @@ for ion in ions:
 	ion_atom = Atoms(ion, positions=[(0,0,0)])
 	if "gau" in calculator:
 		label_atom = "calc" + ion + "/g16"
-		ion_atom.calc = Gaussian(label=label_atom, method=xc, basis=basis, 
+		prepare_basisfile(ion_atom, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
+		ion_atom.calc = Gaussian(label=label_atom, method=xc, basisfile=basisfile, 
 								 charge=ion_charge, population="full,nbo")
 	elif "nw" in calculator:
 		label_atom = "calc" + ion + "/nwchem"
