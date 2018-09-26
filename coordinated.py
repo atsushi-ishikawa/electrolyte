@@ -158,11 +158,18 @@ total_dipole = linalg.norm(dipole)
 O_solv_charge = {}
 if "gau" in calculator:
 	mocoef, basis_to_atom = solv.get_mo_coeff()
-	nocc    = len(mo_energy[0])
-	c_homo  = np.array( mocoef[nocc-1] )
-	maxind  = np.argmax(map(abs, c_homo))
+	nocc = len(mo_energy[0])
+	orb  = nocc # homo+1
+	while orb > 0:
+		c_homo  = np.array( mocoef[orb] )
+		maxind  = np.argmax(map(abs, c_homo))
+		O_coord = basis_to_atom[maxind] # atom index where HOMO coefficient is maximum --> coordinating O atom
+		if solv[O_coord].symbol == 'O':
+			break
+		orb = orb - 1
+
 	print "O_coord:",O_coord
-	O_coord = basis_to_atom[maxind] # atom index where HOMO coefficient is maximum --> coordinating O atom
+
 	for pop in population:
 		O_solv_charge[pop] = atomic_charge[pop][O_coord]
 elif "nw" in calculator:
@@ -270,13 +277,12 @@ for ion in ions:
 		exit()
 
 	ion_atom = Atoms(ion, positions=[(0,0,0)])
+	label_atom = workdir
 	if "gau" in calculator:
-		label_atom = "calc" + ion + "/g16"
 		prepare_basisfile(ion_atom, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
 		ion_atom.calc = Gaussian(label=label_atom, method=xc, basis=basis, basisfile=basisfile, 
 								 charge=ion_charge, population="full,nbo")
 	elif "nw" in calculator:
-		label_atom = "calc" + ion + "/nwchem"
 		ion_atom.calc = NWChem(label=label_atom, xc=xc, basis=basis, 
 							   charge=ion_charge, mulliken=True)
 
