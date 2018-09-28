@@ -15,7 +15,7 @@ argvs = sys.argv
 
 nions = len(argvs) - 2 
 
-IP_and_EA = False
+IP_and_EA = True
 polarizability = False
 
 calculator = "gaussian"
@@ -277,14 +277,13 @@ for ion in ions:
 		exit()
 
 	ion_atom = Atoms(ion, positions=[(0,0,0)])
-	label_atom = workdir
+	label_atom = workdir + "/" + ion
 	if "gau" in calculator:
 		prepare_basisfile(ion_atom, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
 		ion_atom.calc = Gaussian(label=label_atom, method=xc, basis=basis, basisfile=basisfile, 
 								 charge=ion_charge, population="full,nbo")
 	elif "nw" in calculator:
-		ion_atom.calc = NWChem(label=label_atom, xc=xc, basis=basis, 
-							   charge=ion_charge, mulliken=True)
+		ion_atom.calc = NWChem(label=label_atom, xc=xc, basis=basis, charge=ion_charge, mulliken=True)
 
 	E_ion = ion_atom.get_potential_energy()
 
@@ -309,5 +308,5 @@ db_out.write(solv,num=num, smiles=smiles, name=name,
 						"Ecoord"        : Ecoord }
 			)
 
-#shutil.rmtree(workdir)
+shutil.rmtree(workdir)
 
