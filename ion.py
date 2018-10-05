@@ -1,7 +1,7 @@
 from ase import Atoms
 # from ase.calculators.nwchem import NWChem
-import mynwchem
 from mynwchem import NWChem
+from mygaussian import *
 from ase.calculators.gaussian import Gaussian
 from ase.db import connect
 from ase.optimize import FIRE
@@ -22,28 +22,29 @@ nions = len(argvs) - 2 # number of ion species
 for i in range(0, nions):
 	ions.append(str(argvs[i+1]))
 
-print "ions", ions
-
 num = int(argvs[nions + 1])
-
-# workdir
-work = "/work/a_ishi/"
-if not os.path.isdir(work):
-	os.makedirs(work)
-
-workdir = work + "calc" + str(num).zfill(4)
 
 # solv_jsonfile = "electrolye_2017Aug.json"
 solv_jsonfile = "ishi3_new.json"
 
 # ---
-xc    = "B3LYP"
-basis = "3-21G"
-#basis = "DZP"
-#basis = "ADZP"
-fmax  =  0.10
-memory = "total 8 gb"
+xc    = "M06"
+basis = "lanl2dz"
+#basis = "3-21G"
 # ---
+fmax    = 0.20
+steps   = 50
+memory  = "total 8 gb"
+opt     = "newton, maxcycles=200, loose"
+ioplist = ["1/18=40"] # do optimization in Cartesian coordinate to avoid error
+# ---
+
+# workdir
+work    = "/work/a_ishi/"
+workdir = work + "calc" + str(num).zfill(4)
+
+if not os.path.isdir(workdir):
+	os.makedirs(workdir)
 
 db_solv = connect(solv_jsonfile)
 
@@ -71,8 +72,8 @@ for ion in ions:
 		ion_solv = db_ion.get_atoms(num=num)
 	except:
 		print "newly formed here"
-		# determine charge
 
+		# determine charge
 		if ion in ["Li", "Na", "K", "Rb", "Cs"]:
 			ion_charge = 1
 		elif ion in ["Mg", "Be", "Ca", "Sr", "Ba"]:
@@ -178,21 +179,24 @@ for ion in ions:
 
 	if "gau" in calculator:
  		label = workdir + "/g16_low_" + ion
- 		ion_solv.calc = Gaussian(method=xc, basis=basis, label=label, 
-								 charge=ion_charge, mult=1, nprocshared=12, population="full")
+ 		ion_solv.calc = Gaussian(method=xc, basis=basis, label=label, charge=ion_charge, mult=1, nprocshared=12)
+ 		FIRE(ion_solv).run(fmax=fmax,steps=steps)
+		## avoid using Gaussian because it stops at non-convergence
+ 		#ion_solv.calc = Gaussian(method=xc, basis=basis, label=label, opt=opt, force=None,
+		# 						 charge=ion_charge, mult=1, nprocshared=12, ioplist=ioplist)
+		#ion_solv.get_potential_energy()
 	elif "nw" in calculator:
  		label = workdir + "/nwchem_low_" + ion
 	 	ion_solv.calc = NWChem(label=label, xc=xc, basis=basis, charge=ion_charge, mult=1, 
 							   iterations=200, mulliken=True, memory=memory) # cation
                         
- 	traj = ion + "_low_" + str(num).zfill(4) + ".traj"
- 	FIRE(ion_solv, trajectory=traj).run(fmax=fmax)
- 
+ 		traj = ion + "_low_" + str(num).zfill(4) + ".traj"
+ 		FIRE(ion_solv).run(fmax=fmax)
+
  	db_ion.write(ion_solv, smiles=ion_smiles, name=name, num=num, 
 				molecular_weight=wgt, density=dens,
  				boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem,
- 			  	level="low"
- 			)
+ 			  	level="low" )
 
 shutil.rmtree(workdir)
 

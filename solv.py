@@ -16,9 +16,11 @@ calculator = calculator.lower()
 #solv_jsonfile = "electrolye_2017Aug.json"
 solv_jsonfile = "ishi3_new.json" # read from & write to this file
 
-method = "B3LYP"
+method = "M06"
 basis  = "3-21G"
-fmax   = 0.10
+fmax   = 0.20
+steps  = 50
+opt    = "gediis,loose"
 
 # workdir
 work = "/work/a_ishi/"
@@ -26,7 +28,7 @@ if not os.path.isdir(work):
 	os.makedirs(work)
 
 workdir = work + "calc" + str(num).zfill(4)
-label   = workdir + "/low_solv"
+label   = workdir + '/low_solv'
 
 db_solv = connect(solv_jsonfile)
 
@@ -43,28 +45,24 @@ try:
 except:
 	pubchem = ""
 
-
 charge = 0
 if num == 106:
 	charge = -1
 
 if "gau" in calculator:
-	solv.calc = Gaussian(method=xc, basis=basis, label=label, 
-						 charge=charge, mult=1, nprocshared=12, population="full")
-
+	#solv.calc = Gaussian(method=method, basis=basis, label=label, charge=charge, mult=1, nprocshared=12, force=None, opt=opt)
+	#solv.get_potential_energy()
+	solv.calc = Gaussian(method=method, basis=basis, label=label, charge=charge, mult=1, nprocshared=12)
+	FIRE(solv).run(fmax=fmax, steps=steps)
 elif "nw" in calculator:
-	solv.calc = NWChem(label=label, xc=method, basis=basis, charge=charge, mult=1, iterations=200,
-			   mulliken=True)
-
-traj = "solv_low_" + str(num).zfill(4) + ".traj"
-FIRE(solv, trajectory=traj).run(fmax=fmax)
+	solv.calc = NWChem(label=label, xc=method, basis=basis, charge=charge, mult=1, iterations=200, mulliken=True)
+	traj = "solv_low_" + str(num).zfill(4) + ".traj"
+	FIRE(solv, trajectory=traj).run(fmax=fmax, steps=steps)
 
 delete_num_from_json(num, solv_jsonfile)
-
 db_solv.write(solv, smiles=smiles, name=name, num=num, 
 			  molecular_weight=wgt, density=dens,
- 			  boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem
- 			 )
+ 			  boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem )
 
 shutil.rmtree(workdir)
 

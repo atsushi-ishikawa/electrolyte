@@ -33,21 +33,28 @@ num = int(argvs[nions + 1])
 solv_jsonfile = "ishi3_new.json"
 out_jsonfile  = "ishi3_final.json"
 
-# ---
-xc       = "B3LYP"
+# functional
+xc       = "M06"
+
+# basis
 #basis    = "cc-pvdz"
 #basis    = "svp"
-basis = "genECP"
 basisfile = "basis.bas"
 
 basisname = "def2-svp"
 ecpname   = "def2"
 
-fmax     =  0.10
-memory   = "total 8 gb"
-response = "1 0.0"
+basis     = "genECP" if basisname!="" else "3-21G"
+
+# optimize
+optimizer = "ase"
+fmax      = 0.20
+steps     = 50
+opt = "newton" # Gaussian
+
+memory    = "total 8 gb" # only in NWChem
+response  = "1 0.0"
 # ---
-opt = "newton"
 
 # workdir
 work = "/work/a_ishi/"
@@ -62,9 +69,6 @@ label_solv = workdir + "/solv"
 
 db_solv = connect(solv_jsonfile)
 db_out  = connect(out_jsonfile)
-
-maxsteps = 200 # maximum number of geometry optimization steps
-
 # ---------------------------
 # --------- solvent ---------
 # ---------------------------
@@ -97,12 +101,17 @@ print "solvent"
 #
 if "gau" in calculator:
 	prepare_basisfile(solv, basisfile=basisfile, basisname=basisname)
- 	solv.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, opt=opt, force=None)
-	solv.get_potential_energy()
+ 	#solv.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, opt=opt, force=None)
+ 	solv.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult)
 elif "nw" in calcullator:
 	solv.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, mult=mult, iterations=200, mulliken=True, memory=memory)
+
+if optimizer=="ase":
 	traj = "solv_" + str(num).zfill(4) + ".traj"
-	FIRE(solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
+	FIRE(solv, trajectory=traj).run(fmax=fmax, steps=steps)
+elif optimizer=="gaussian":
+	solv.get_potential_energy()
+
 #
 # single point calculation
 #
@@ -190,12 +199,16 @@ if IP_and_EA:
 	solv_c = solv.copy()
 	if "gau" in calculator:
 		prepare_basisfile(solv_c, basisfile=basisfile, basisname=basisname)
-		solv_c.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge+1, multiplicity=mult+1, 
-							   population="full,nbo", opt=opt, force=None)
+		#solv_c.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge+1, multiplicity=mult+1, opt=opt, force=None)
+		solv_c.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge+1, multiplicity=mult+1)
 	elif "nw" in calculator:
 		solv_c.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, iterations=200, mulliken=True, memory=memory)
+
+	if optimizer=="ase":
 		traj = "solv_cat" + str(num).zfill(4) + ".traj"
-		FIRE(solv_c, trajectory=traj).run(fmax=fmax, steps=maxsteps)
+		FIRE(solv, trajectory=traj).run(fmax=fmax, steps=steps)
+	elif optimizer=="gaussian":
+		pass
 
 	E_cat = solv_c.get_potential_energy()
 	#
@@ -205,12 +218,16 @@ if IP_and_EA:
 	solv_a = solv.copy()
 	if "gau" in calculator:
 		prepare_basisfile(solv_a, basisfile=basisfile, basisname=basisname)
-		solv_a.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge-1, multiplicity=mult+1,
-							   population="full,nbo", opt=opt, force=None)
+		#solv_a.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge-1, multiplicity=mult+1, opt=opt, force=None)
+		solv_a.calc = Gaussian(label=label_solv, method=xc, basis=basis, basisfile=basisfile, charge=charge-1, multiplicity=mult+1)
 	elif "nw" in calculator:
 		solv_a.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, iterations=200, mulliken=True, memory=memory)
+
+	if optimizer=="ase":
 		traj = "solv_ani" + str(num).zfill(4) + ".traj"
-		FIRE(solv_a, trajectory=traj).run(fmax=fmax, steps=maxsteps)
+		FIRE(solv, trajectory=traj).run(fmax=fmax, steps=steps)
+	elif optimizer=="gaussian":
+		pass
 
 	E_ani = solv_a.get_potential_energy()
 	#
@@ -253,12 +270,16 @@ for ion in ions:
 	print ion, "coordinated"
 	if "gau" in calculator:
 		prepare_basisfile(ion_solv, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
-		ion_solv.calc = Gaussian(label=label_ion, method=xc, basis=basis, basisfile=basisfile, charge=charge, 
-								 multiplicity=mult, population="full,nbo", opt=opt, force=None) # cat
+		#ion_solv.calc = Gaussian(label=label_ion, method=xc, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, population="full,nbo", opt=opt, force=None)
+		ion_solv.calc = Gaussian(label=label_ion, method=xc, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, population="full,nbo")
 	elif "nw" in calculator:
-		ion_solv.calc = NWChem(label=label_ion, xc=xc, basis=basis, charge=charge, mult=mult, iterations=200, mulliken=True, memory=memory) # cat
+		ion_solv.calc = NWChem(label=label_ion, xc=xc, basis=basis, charge=charge, mult=mult, iterations=200, mulliken=True, memory=memory)
+
+	if optimizer=="ase":
 		traj = ion + str(num).zfill(4) + ".traj"
-		FIRE(ion_solv, trajectory=traj).run(fmax=fmax, steps=maxsteps)
+		FIRE(solv, trajectory=traj).run(fmax=fmax, steps=steps)
+	elif optimizer=="gaussian":
+		pass
 
 	E_ion_solv = ion_solv.get_potential_energy()
 	R_ion_O[ion], O_idx = ABcoord(ion_solv, ion, "O")
@@ -280,8 +301,7 @@ for ion in ions:
 	label_atom = workdir + "/" + ion
 	if "gau" in calculator:
 		prepare_basisfile(ion_atom, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
-		ion_atom.calc = Gaussian(label=label_atom, method=xc, basis=basis, basisfile=basisfile, 
-								 charge=ion_charge, population="full,nbo")
+		ion_atom.calc = Gaussian(label=label_atom, method=xc, basis=basis, basisfile=basisfile, charge=ion_charge, population="full,nbo")
 	elif "nw" in calculator:
 		ion_atom.calc = NWChem(label=label_atom, xc=xc, basis=basis, charge=ion_charge, mulliken=True)
 
@@ -296,17 +316,13 @@ for ion in ions:
 db_out.write(solv,num=num, smiles=smiles, name=name,
 			  	molecular_weight=wgt, density=dens,
 			  	boiling_point=bp, melting_point=mp, flushing_point=fp,
-				data={	"e_homo"        : e_homo,
-						"e_lumo"        : e_lumo,
+				data={	"e_homo"        : e_homo, "e_lumo"        : e_lumo,
 						"O_solv_charge" : O_solv_charge,
 						"R_ion_O"       : R_ion_O,
 						"total_dipole"  : total_dipole,
-					#	"iso_polarizability"   : iso_pol,
-					#	"aniso_polarizability" : aniso_pol,
-					 	"ionization_potential" : IP,
-					 	"electron_affinity"    : EA,
-						"Ecoord"        : Ecoord }
-			)
+					#	"iso_polarizability" : iso_pol, "aniso_polarizability": aniso_pol,
+					 	"ionization_potential" : IP, "electron_affinity"    : EA,
+						"Ecoord"        : Ecoord } 			)
 
 shutil.rmtree(workdir)
 

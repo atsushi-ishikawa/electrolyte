@@ -6,6 +6,7 @@ from mynwchem import NWChem
 from ase.db import connect
 from ase.optimize import FIRE
 from ase.io import read,write
+from tools import delete_num_from_json
 import os, sys, shutil
 import numpy as np
 
@@ -13,9 +14,13 @@ fmax  = 0.20
 xc    = "B3LYP"
 basis = "3-21G"
 calculator = "gaussian"
+opt   = "gediis"
 
-db_read  = connect("ishi3.json")
-db_write = connect("ishi3_new.json")
+orig_jsonfile = "ishi3.json"
+solv_jsonfile = "ishi3_new.json"
+
+db_read  = connect(orig_jsonfile)
+db_write = connect(solv_jsonfile)
 
 argvs = sys.argv
 num = int(argvs[1])
@@ -23,7 +28,8 @@ num = int(argvs[1])
 # workdir
 work    = "/work/a_ishi/"
 workdir = work + "calc" + str(num).zfill(4)
-label   = workdir + "/low_solv"
+#label   = workdir + "/low_solv"
+label = workdir + "/prep"
 
 if not os.path.isdir(label):
 	os.makedirs(label)
@@ -48,19 +54,16 @@ if num == 106: # benzoate
 	charge = -1
 	
 if "gau" in calculator:
-	calc = Gaussian(label=label, method=xc, basis=basis, charge=charge, mult=1, population="full")
+	mol.calc = Gaussian(label=label, method=xc, basis=basis, charge=charge, mult=1, force=None, opt=opt)
+	mol.get_potential_energy()
 else:
-	calc = NWChem(label=label, xc=xc, basis=basis, charge=charge, mult=1, iterations=100, \
-				  memory="8 gb", mulliken=True)
-mol.set_calculator(calc)
+	mol.calc = NWChem(label=label, xc=xc, basis=basis, charge=charge, mult=1, iterations=100, memory="8 gb", mulliken=True)
+	FIRE(mol).run(fmax=fmax)
 
-opt = FIRE(mol)
-opt.run(fmax=fmax)
-
+delete_num_from_json(num, solv_jsonfile)
 db_write.write(mol, smiles=smiles, name=name, num=num,
                molecular_weight=wgt, density=dens,
-               boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem
-            )
+               boiling_point=bp, melting_point=mp, flushing_point=fp, pubchemCID=pubchem )
 
 shutil.rmtree(workdir)
 
