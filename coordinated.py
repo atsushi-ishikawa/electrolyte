@@ -206,7 +206,7 @@ if IP_and_EA:
 
 	if optimizer=="ase":
 		traj = "solv_cat" + str(num).zfill(4) + ".traj"
-		FIRE(solv, trajectory=traj).run(fmax=fmax, steps=steps)
+		FIRE(solv_c, trajectory=traj).run(fmax=fmax, steps=steps)
 	elif optimizer=="gaussian":
 		pass
 
@@ -225,7 +225,7 @@ if IP_and_EA:
 
 	if optimizer=="ase":
 		traj = "solv_ani" + str(num).zfill(4) + ".traj"
-		FIRE(solv, trajectory=traj).run(fmax=fmax, steps=steps)
+		FIRE(solv_a, trajectory=traj).run(fmax=fmax, steps=steps)
 	elif optimizer=="gaussian":
 		pass
 
@@ -277,7 +277,7 @@ for ion in ions:
 
 	if optimizer=="ase":
 		traj = ion + str(num).zfill(4) + ".traj"
-		FIRE(solv, trajectory=traj).run(fmax=fmax, steps=steps)
+		FIRE(ion_solv, trajectory=traj).run(fmax=fmax, steps=steps)
 	elif optimizer=="gaussian":
 		pass
 
