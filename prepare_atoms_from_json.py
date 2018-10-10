@@ -10,12 +10,14 @@ from tools import delete_num_from_json
 import os, sys, shutil
 import numpy as np
 
-fmax  = 0.20
-xc    = "B3LYP"
-basis = "3-21G"
+fmax   = 0.20
+xc     = "B3LYP"
+basis  = "3-21G"
 calculator = "gaussian"
-opt   = "gediis"
-scf   = "(xqc,maxconventional=200)"
+opt    = "gediis"
+scf    = "(xqc,maxconventional=200)"
+nprocs = 12
+mem    = "8GB"
 
 orig_jsonfile = "ishi3.json"
 solv_jsonfile = "ishi3_new.json"
@@ -55,7 +57,7 @@ if num == 106: # benzoate
 	charge = -1
 	
 if "gau" in calculator:
-	mol.calc = Gaussian(label=label, method=xc, scf=scf, basis=basis, charge=charge, mult=1, force=None, opt=opt, gfinput="gfinput")
+	mol.calc = Gaussian(label=label, method=xc, scf=scf, basis=basis, charge=charge, mult=1, force=None, opt=opt, gfinput="gfinput", nprocshared=nprocs, mem=mem)
 	mol.get_potential_energy()
 else:
 	mol.calc = NWChem(label=label, xc=xc, basis=basis, charge=charge, mult=1, iterations=100, memory="8 gb", mulliken=True)

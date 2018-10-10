@@ -15,7 +15,7 @@ argvs = sys.argv
 
 nions = len(argvs) - 2 
 
-IP_and_EA = True
+IP_and_EA = False
 polarizability = False
 
 calculator = "gaussian"
@@ -54,7 +54,10 @@ opt       = "newton" # Gaussian
 scf       = "(xqc,maxconventional=200)"
 grid      = "ultrafine"
 
-memory    = "total 8 gb" # only in NWChem
+nprocs    = 12
+mem       = "8GB"
+
+#memory    = "total 8 gb" # only in NWChem
 response  = "1 0.0"
 # ---
 
@@ -104,7 +107,7 @@ print "solvent"
 if "gau" in calculator:
 	prepare_basisfile(solv, basisfile=basisfile, basisname=basisname)
  	#solv.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, opt=opt, force=None)
- 	solv.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, gfinput="gfinput", grid=grid)
+ 	solv.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, gfinput="gfinput", grid=grid, nprocshared=nprocs, mem=mem)
 elif "nw" in calcullator:
 	solv.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, mult=mult, iterations=200, mulliken=True, memory=memory)
 
@@ -118,7 +121,7 @@ elif optimizer=="gaussian":
 # single point calculation
 #
 if "gau" in calculator:
- 	solv.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, force=None, pop="full,nbo", gfinput="gfinput", grid=grid)
+ 	solv.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, force=None, pop="full,nbo", gfinput="gfinput", grid=grid, nprocshared=nprocs, mem=mem)
 elif "nw" in calculator:
 	if polarizability:
 		solv.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=charge, mult=mult,
@@ -202,7 +205,7 @@ if IP_and_EA:
 	if "gau" in calculator:
 		prepare_basisfile(solv_c, basisfile=basisfile, basisname=basisname)
 		#solv_c.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge+1, multiplicity=mult+1, opt=opt, force=None)
-		solv_c.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge+1, multiplicity=mult+1, gfinput="gfinput", grid=grid)
+		solv_c.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge+1, multiplicity=mult+1, gfinput="gfinput", grid=grid, nprocshared=nprocs, mem=mem)
 	elif "nw" in calculator:
 		solv_c.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, iterations=200, mulliken=True, memory=memory)
 
@@ -221,7 +224,7 @@ if IP_and_EA:
 	if "gau" in calculator:
 		prepare_basisfile(solv_a, basisfile=basisfile, basisname=basisname)
 		#solv_a.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge-1, multiplicity=mult+1, opt=opt, force=None)
-		solv_a.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge-1, multiplicity=mult+1, gfinput="gfinput", grid=grid)
+		solv_a.calc = Gaussian(label=label_solv, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge-1, multiplicity=mult+1, gfinput="gfinput", grid=grid, nprocshared=nprocs, mem=mem)
 	elif "nw" in calculator:
 		solv_a.calc = NWChem(label=label_solv, xc=xc, basis=basis, charge=chg, mult=mlt, iterations=200, mulliken=True, memory=memory)
 
@@ -272,7 +275,7 @@ for ion in ions:
 	if "gau" in calculator:
 		prepare_basisfile(ion_solv, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
 		#ion_solv.calc = Gaussian(label=label_ion, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, opt=opt, force=None)
-		ion_solv.calc = Gaussian(label=label_ion, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, gfinput="gfinput", grid=grid)
+		ion_solv.calc = Gaussian(label=label_ion, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=charge, multiplicity=mult, gfinput="gfinput", grid=grid, nprocshared=nprocs, mem=mem)
 	elif "nw" in calculator:
 		ion_solv.calc = NWChem(label=label_ion, xc=xc, basis=basis, charge=charge, mult=mult, iterations=200, mulliken=True, memory=memory)
 
@@ -302,7 +305,7 @@ for ion in ions:
 	label_atom = workdir + "/" + ion
 	if "gau" in calculator:
 		prepare_basisfile(ion_atom, basisfile=basisfile, basisname=basisname, ecplist=ecplist)
-		ion_atom.calc = Gaussian(label=label_atom, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=ion_charge, population="full,nbo", gfinput="gfinput", grid=grid)
+		ion_atom.calc = Gaussian(label=label_atom, method=xc, scf=scf, basis=basis, basisfile=basisfile, charge=ion_charge, population="full,nbo", gfinput="gfinput", grid=grid, nprocshared=nprocs, mem=mem)
 	elif "nw" in calculator:
 		ion_atom.calc = NWChem(label=label_atom, xc=xc, basis=basis, charge=ion_charge, mulliken=True)
 

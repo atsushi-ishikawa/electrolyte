@@ -35,11 +35,13 @@ pseudo = "lanl2"
 # ---
 fmax    = 0.08
 steps   = 200
-memory  = "total 8 gb"
+#memory  = "total 8 gb"
 opt     = "newton, maxcycles=200, loose"
 scf     = "(xqc,maxconventional=200)"
 grid    = "ultrafine"
 ioplist = ["1/18=40"] # do optimization in Cartesian coordinate to avoid error
+nprocs  = 12
+mem     = "8GB"
 # ---
 
 # workdir
@@ -198,7 +200,7 @@ for ion in ions:
 
 	if "gau" in calculator:
  		label = workdir + "/g16_low_" + ion
- 		ion_solv.calc = Gaussian(label=label, method=xc, basis=basis, scf=scf, charge=ion_charge, mult=1, nprocshared=12, gfinput="gfinput", grid=grid)
+ 		ion_solv.calc = Gaussian(label=label, method=xc, basis=basis, scf=scf, charge=ion_charge, mult=1, gfinput="gfinput", grid=grid, nprocshared=nprocs, mem=mem)
 		traj = ion + "_low" + str(num).zfill(4) + ".traj"
  		FIRE(ion_solv, trajectory=traj).run(fmax=fmax,steps=steps)
 		## avoid using Gaussian because it stops at non-convergence
