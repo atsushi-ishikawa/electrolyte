@@ -21,6 +21,7 @@ basis  = "3-21G"
 fmax   = 0.20
 steps  = 50
 opt    = "gediis,loose"
+grid   = "ultrafine"
 
 # workdir
 work = "/work/a_ishi/"
@@ -52,7 +53,7 @@ if num == 106:
 if "gau" in calculator:
 	#solv.calc = Gaussian(method=method, basis=basis, label=label, charge=charge, mult=1, nprocshared=12, force=None, opt=opt)
 	#solv.get_potential_energy()
-	solv.calc = Gaussian(method=method, basis=basis, label=label, charge=charge, mult=1, nprocshared=12)
+	solv.calc = Gaussian(method=method, basis=basis, label=label, charge=charge, mult=1, nprocshared=12, grid=grid)
 	FIRE(solv).run(fmax=fmax, steps=steps)
 elif "nw" in calculator:
 	solv.calc = NWChem(label=label, xc=method, basis=basis, charge=charge, mult=1, iterations=200, mulliken=True)

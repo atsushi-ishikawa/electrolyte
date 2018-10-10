@@ -15,6 +15,7 @@ xc    = "B3LYP"
 basis = "3-21G"
 calculator = "gaussian"
 opt   = "gediis"
+scf   = "(xqc,maxconventional=200)"
 
 orig_jsonfile = "ishi3.json"
 solv_jsonfile = "ishi3_new.json"
@@ -43,9 +44,9 @@ mp      = db_read.get(num=num).melting_point
 fp      = db_read.get(num=num).flushing_point
 pubchem = db_read.get(num=num).pubchemCID
 
-tmpxyz = label + "/tmp.xyz"
+tmpxyz = label + "_tmp.xyz"
 babel_str = 'obabel ' + '-:"' + smiles + '" -oxyz -O ' + tmpxyz + ' -h --gen3D'
-os.system(babel_str)
+os.system("%s >& /dev/null" % babel_str)
 
 mol = read(tmpxyz)
 
@@ -54,7 +55,7 @@ if num == 106: # benzoate
 	charge = -1
 	
 if "gau" in calculator:
-	mol.calc = Gaussian(label=label, method=xc, basis=basis, charge=charge, mult=1, force=None, opt=opt)
+	mol.calc = Gaussian(label=label, method=xc, scf=scf, basis=basis, charge=charge, mult=1, force=None, opt=opt, gfinput="gfinput")
 	mol.get_potential_energy()
 else:
 	mol.calc = NWChem(label=label, xc=xc, basis=basis, charge=charge, mult=1, iterations=100, memory="8 gb", mulliken=True)
