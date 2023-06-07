@@ -143,9 +143,9 @@ if "gau" in calculator:
 			atomic_charge[pop] = solv.get_nbo_charge()
 elif "nw" in calculator:
 	if population=="mulliken":
-		atomic_charge = calc.results["mul_charge"] 
+		atomic_charge = solv.calc.results["mul_charge"] 
 	elif population=="lowdin":
-		atomic_charge = calc.results["low_charge"] 
+		atomic_charge = solv.calc.results["low_charge"] 
 	else:
 		print "choose population"
 		exit()

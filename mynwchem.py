@@ -9,7 +9,7 @@ import numpy as np
 from warnings import warn
 from ase.atoms import Atoms
 from ase.units import Hartree, Bohr
-from ase.io.nwchem import write_nwchem
+from ase.io.nwchem import write_nwchem_in
 from ase.calculators.calculator import FileIOCalculator, Parameters, ReadError
 
 
